@@ -41,5 +41,11 @@ function myHandler() {
     }
 $(document).on('iframeready', myHandler);
 
-	
+function matchUrlsFromDescription() {
+	var description = $('#descriptionmodule p').text()
+	var urlRegex =/(\b(https?|ftp|file):\/\/[-a-zA-Z0-9+&@#\/%?=~_|!:,.;]*[-a-zA-Z0-9+&@#\/%=~_|])/ig;
+	var found = description.match(urlRegex);
+	console.log(found)
+}
+
 loadGtnLinks(issueLinks.slice(0, 1))
