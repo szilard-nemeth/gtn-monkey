@@ -1,7 +1,50 @@
-var issueLinks = $('.issue-table-container .issuekey a').map(function() {
-      return "https://jira.cloudera.com" + $(this).attr('href');
-}).toArray();
+function findAllLinksFromJiraIssues() {
+	var issues = getFoundJiraIssuesFromStorage()
 
+	//Starting up the scraping process
+	//https://jira.cloudera.com/issues/?filter=
+	var originPage = window.location.href.startsWith("https://jira.cloudera.com/issues/?filter=")
+
+	if (originPage) {
+		cleanupStorage()
+		storeOriginPage()
+		storeFoundJiraIssues()
+		changeLocation(getFoundJiraIssuesFromStorage()[0])
+	}
+
+
+	//On page ready
+	$(document).ready(function() {
+		console.log("EXECUTED document.ready() on page: " + window.location.href)
+		var issues = getFoundJiraIssuesFromStorage()
+		console.log("Retrieved jira issues: ", issues)
+
+		if (!issues || issues.length == 0) {
+			console.log("NO JIRA ISSUES FOUND!")
+			return
+		}
+		
+		if (window.location.href === issues[0]) {
+			//Parse GTN links
+			parseGTNLinksFromPage()
+			var parsedPage = issues.shift()
+			console.log("Parsed GTN links from page: " + parsedPage)
+
+			//Go to next page
+			if (issues.length > 0) {
+				var newLocation = issues[0]
+				changeLocation(newLocation)
+				
+			} else {
+				console.log("No more pages to process. Changing location to original jira URL: " + getOriginalPageFromStorage())
+				//TODO print all results and go back to original page!
+				changeLocation(getOriginalPageFromStorage())	
+			}
+		} else {
+			console.error("window.location.href != issues[0]. current page: " + window.location.href + " issues[0]: " + issues[0])
+		}
+	});
+}
 
 function loadGtnLinks(issueLinks) {
 	issueLinks.forEach(function(issue, idx) {
@@ -46,10 +89,11 @@ $(document).on('iframeready', myHandler);
 
 
 
-function waitForCommentsLoaded(funcToCall) {
-	var waitForEl = function(selector, callback, count) {
+function waitForCommentsLoaded(functionsToCall) {
+	var waitForEl = function(selector, callbacks, count) {
 	  if ($(selector).length == 0) {
-	    callback();
+	  	callbacks.forEach(c => c())
+	    // callback();
 	  } else {
 	    setTimeout(function() {
 	      if(!count) {
@@ -58,7 +102,7 @@ function waitForCommentsLoaded(funcToCall) {
 	      count++;
 	      console.log("count: " + count);
 	      if(count<10) {
-	        waitForEl(selector,callback,count);
+	        waitForEl(selector, callbacks, count);
 	      } else {return;}
 	    }, 1000);
 	  }
@@ -67,15 +111,17 @@ function waitForCommentsLoaded(funcToCall) {
 	//<span class="show-more-comments" data-collapsed-count="18">Loading...</span>
 	var selector = $(".show-more-comments");
 
-	waitForEl(".show-more-comments", funcToCall);
+	waitForEl(".show-more-comments", functionsToCall);
 }
 
-function findLinksInDescription() {
+function parseAndSaveLinksFromDescription() {
 	var description = $('#descriptionmodule p').html()
-	return findLinksInHtml(description)
+	var links = findLinksInHtml(description)
+	storeFoundGTNLinksForJiraIssue(links)
 }
 
-function findLinksInComments() {
+function parseGTNLinksFromPage() {
+	console.log("Parsing GTN links from current page: " + window.location.href)
 	//Click on show more comments button
 
 	//<a class="collapsed-comments" href="/browse/CDH-76879?page=com.atlassian.jira.plugin.system.issuetabpanels:comment-tabpanel&amp;showAll=true">
@@ -86,7 +132,7 @@ function findLinksInComments() {
 
 	//Wait for comments to be loaded
 	//https://gist.github.com/chrisjhoughton/7890303
-	waitForCommentsLoaded(parseAndSaveComments)
+	waitForCommentsLoaded([parseAndSaveComments, parseAndSaveLinksFromDescription])
 }
 
 function parseAndSaveComments() {
@@ -99,11 +145,11 @@ function parseAndSaveComments() {
 		var links = findLinksInHtml($(this).html())
 
 		if (links == null) {
-			window.localStorage.setItem(getLocalStorageKeyForJira(), JSON.stringify([]));
+			storeFoundGTNLinksForJiraIssue([])
 		} else {
 			links = links.map(function(link) {
 			if (link.indexOf("gtn=") != -1) {
-				console.log("***found link matching GTN: " + link)
+				console.log("Found link matching GTN: " + link)
 				return link;
 			} else {
 				return null
@@ -122,8 +168,7 @@ function parseAndSaveComments() {
 		}
  	});
 
-	console.log("Found links for jira " + getJiraName() + ": " + JSON.stringify(allLinks))
- 	window.localStorage.setItem(getLocalStorageKeyForJira(), JSON.stringify(allLinks));
+	storeFoundGTNLinksForJiraIssue(allLinks)
 }
 
 function findLinksInHtml(html) {
@@ -132,13 +177,109 @@ function findLinksInHtml(html) {
 	return found
 }
 
-function getLocalStorageKeyForJira() {
-	return 'gtnmonkey_' + getJiraName()
+
+//Store functions for localStorage
+function cleanupStorage() {
+	//CLEANS UP THE FOLLOWING LOCALSTORAGE KEYS: 
+	//gtnmonkey_result_*
+	//gtnmonkey_mainPage
+	//gtnmonkey_jiraissues
+
+	//https://gist.github.com/n0m4dz/77f08d3de1b9115e905c
+	function findLocalItems(query) {
+		var i, results = [];
+		for (i in localStorage) {
+		if (localStorage.hasOwnProperty(i)) {
+		  if (i.match(query) || (!query && typeof i === 'string')) {
+		    value = JSON.parse(localStorage.getItem(i));
+		    results.push({key:i,val:value});
+		  }
+		}
+		}
+		return results;
+	}
+	var results = findLocalItems("gtnmonkey_result_")
+	results.forEach(r => {
+		console.log("Deleting localStorage item " + r.key);
+		window.localStorage.setItem(r.key, null);
+	})
+
+	window.localStorage.setItem("gtnmonkey_mainPage", null)
+	window.localStorage.setItem("gtnmonkey_jiraissues", null)
+}
+
+function storeFoundGTNLinksForJiraIssue(newLinks) {
+	var jiraIssue = getJiraName()
+	var gtnLinks = getFoundGTNLinksForJiraIssue(jiraIssue)
+	storeFoundGTNLinks(jiraIssue, gtnLinks, newLinks)
+}
+
+function storeFoundGTNLinks(jiraIssue, gtnLinks, newLinks) {
+	if (gtnLinks > 0) {
+		console.log("Found data for '" + storageKey + "', appending data to it")
+	}	
+	console.log("Found new GTN links for jira " + jiraIssue + ": " + JSON.stringify(newLinks))
+	window.localStorage.setItem('gtnmonkey_result_' + jiraIssue, JSON.stringify(gtnLinks.concat(newLinks)));
+}
+
+function storeOriginPage() {
+	window.localStorage.setItem('gtnmonkey_mainPage', window.location.href)
+}
+
+function storeFoundJiraIssues() {
+	var issueLinks = $('.issue-table-container .issuekey a').map(function() {
+      return "https://jira.cloudera.com" + $(this).attr('href');
+	}).toArray();
+	console.log("Found jira issues: ", issueLinks)
+	window.localStorage.setItem('gtnmonkey_jiraissues', JSON.stringify(issueLinks))
+}
+
+//Retrieve functions for localStorage
+function getFoundGTNLinksForJiraIssue(jiraIssue) {
+	var storageKey = 'gtnmonkey_result_' + jiraIssue
+	return JSON.parse(localStorage.getItem(storageKey) || "[]");
+}
+
+function getFoundJiraIssuesFromStorage() {
+	return JSON.parse(localStorage.getItem("gtnmonkey_jiraissues") || "[]");
+}
+
+function getOriginalPageFromStorage() {
+	return window.localStorage.getItem('gtnmonkey_mainPage')	
 }
 
 function getJiraName() {
 	return window.location.href.split("browse/")[1]
 }
+
+function changeLocation(location) {
+	console.log("Changing location to: " + location)
+	window.location.href = location
+}
+
+function isFunction(functionToCheck) {
+	return functionToCheck && {}.toString.call(functionToCheck) === '[object Function]';
+}
+
+function createButton(title, funcToCall, icon) {
+    var divider = $('<span class="board-header-btn-divider"></span>')
+
+    if (title === undefined || title == "") {
+    	throw "Title should be defined!"
+    }
+
+    if (funcToCall === undefined || funcToCall == "" || !isFunction(funcToCall)) {
+    	throw "funcToCall should be a valid function!"
+    }
+
+    var href = `javascript:${funcToCall.name}();`
+    var anchorClass = "board-header-btn board-header-btn-without-icon board-header-btn-text"
+    var anchor = $(`<a class="${anchorClass}" href="${href}" title="${title}">${title}</a>`.trim())
+    console.log("anchor:", anchor)
+    divider.appendTo($('.board-header'));
+    anchor.appendTo($('.board-header'));
+}
+
+
  
-findLinksInComments()
 // loadGtnLinks(issueLinks.slice(0, 1))
