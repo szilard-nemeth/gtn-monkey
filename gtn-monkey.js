@@ -15,12 +15,12 @@ function findAllLinksFromJiraIssues() {
 
 	//On page ready
 	$(document).ready(function() {
-		console.log("EXECUTED document.ready() on page: " + window.location.href)
+		printLog("EXECUTED document.ready() on page: " + window.location.href)
 		var issues = getFoundJiraIssuesFromStorage()
-		console.log("Retrieved jira issues: ", issues)
+		printLog("Retrieved jira issues: " + issues)
 
 		if (!issues || issues.length == 0) {
-			console.log("NO JIRA ISSUES FOUND!")
+			printLog("NO JIRA ISSUES FOUND!")
 			return
 		}
 		
@@ -28,7 +28,7 @@ function findAllLinksFromJiraIssues() {
 			//Parse GTN links
 			parseGTNLinksFromPage()
 			var parsedPage = issues.shift()
-			console.log("Parsed GTN links from page: " + parsedPage)
+			printLog("Parsed GTN links from page: " + parsedPage)
 
 			//Go to next page
 			if (issues.length > 0) {
@@ -36,7 +36,7 @@ function findAllLinksFromJiraIssues() {
 				changeLocation(newLocation)
 				
 			} else {
-				console.log("No more pages to process. Changing location to original jira URL: " + getOriginalPageFromStorage())
+				printLog("No more pages to process. Changing location to original jira URL: " + getOriginalPageFromStorage())
 				//TODO print all results and go back to original page!
 				changeLocation(getOriginalPageFromStorage())	
 			}
@@ -51,7 +51,7 @@ function loadGtnLinks(issueLinks) {
 		// (async () => {
 		// 	let response = await fetch(issue);
 		// 	let html = await response.text();
-		// 	console.log("Received html: ", html)
+		// 	printLog("Received html: ", html)
 		// 	}
 	 //    )()
 	 loadToIframe(issue, idx)
@@ -61,7 +61,7 @@ function loadGtnLinks(issueLinks) {
 // <iframe id="iframe" name="myIframe" frameborder="5" width="500" height="300"></iframe>
 
 function loadToIframe(url, id) {
-	console.log("Loading url " + url + " to iframe id: " + id)
+	printLog("Loading url " + url + " to iframe id: " + id)
 	var iframeId = 'iframe' + id
 	var iframe = document.createElement(iframeId);
 	iframe.setAttribute('id', iframeId);
@@ -70,7 +70,7 @@ function loadToIframe(url, id) {
 	iframe.setAttribute('src', url);
 	$('#' + iframeId).on( 'load', function() {
 	    // code will run after iframe has finished loading
-	    console.log("IFRAME LOADED")
+	    printLog("IFRAME LOADED")
 	} );
 
 	$('#' + iframeId).load(url)
@@ -100,7 +100,7 @@ function waitForCommentsLoaded(functionsToCall) {
 	        count=0;
 	      }
 	      count++;
-	      console.log("count: " + count);
+	      printLog("count: " + count);
 	      if(count<10) {
 	        waitForEl(selector, callbacks, count);
 	      } else {return;}
@@ -121,7 +121,7 @@ function parseAndSaveLinksFromDescription() {
 }
 
 function parseGTNLinksFromPage() {
-	console.log("Parsing GTN links from current page: " + window.location.href)
+	printLog("Parsing GTN links from current page: " + window.location.href)
 	//Click on show more comments button
 
 	//<a class="collapsed-comments" href="/browse/CDH-76879?page=com.atlassian.jira.plugin.system.issuetabpanels:comment-tabpanel&amp;showAll=true">
@@ -136,12 +136,12 @@ function parseGTNLinksFromPage() {
 }
 
 function parseAndSaveComments() {
-	console.log("***COMMENTS LOADED");
+	printLog("***COMMENTS LOADED");
 	//classes: twixi-wrap verbose actionContainer
 	var allLinks = []
 	$('.twixi-wrap > .action-body').each(function() {
-		// console.log($(this).html());
-		// console.log("found: " + findLinksInHtml($(this).html()))
+		// printLog($(this).html());
+		// printLog("found: " + findLinksInHtml($(this).html()))
 		var links = findLinksInHtml($(this).html())
 
 		if (links == null) {
@@ -149,13 +149,13 @@ function parseAndSaveComments() {
 		} else {
 			links = links.map(function(link) {
 			if (link.indexOf("gtn=") != -1) {
-				console.log("Found link matching GTN: " + link)
+				printLog("Found link matching GTN: " + link)
 				return link;
 			} else {
 				return null
 			}
 			})
-			//console.log("***links: " + JSON.stringify(links))
+			//printLog("***links: " + JSON.stringify(links))
 			links = links.filter(function(link) {
 			  if (link == null) {
 			    return false;
@@ -200,7 +200,7 @@ function cleanupStorage() {
 	}
 	var results = findLocalItems("gtnmonkey_result_")
 	results.forEach(r => {
-		console.log("Deleting localStorage item " + r.key);
+		printLog("Deleting localStorage item " + r.key);
 		window.localStorage.setItem(r.key, null);
 	})
 
@@ -216,9 +216,9 @@ function storeFoundGTNLinksForJiraIssue(newLinks) {
 
 function storeFoundGTNLinks(jiraIssue, gtnLinks, newLinks) {
 	if (gtnLinks > 0) {
-		console.log("Found data for '" + storageKey + "', appending data to it")
+		printLog("Found data for '" + storageKey + "', appending data to it")
 	}	
-	console.log("Found new GTN links for jira " + jiraIssue + ": " + JSON.stringify(newLinks))
+	printLog("Found new GTN links for jira " + jiraIssue + ": " + JSON.stringify(newLinks))
 	window.localStorage.setItem('gtnmonkey_result_' + jiraIssue, JSON.stringify(gtnLinks.concat(newLinks)));
 }
 
@@ -230,7 +230,7 @@ function storeFoundJiraIssues() {
 	var issueLinks = $('.issue-table-container .issuekey a').map(function() {
       return "https://jira.cloudera.com" + $(this).attr('href');
 	}).toArray();
-	console.log("Found jira issues: ", issueLinks)
+	printLog("Found jira issues: ", issueLinks)
 	window.localStorage.setItem('gtnmonkey_jiraissues', JSON.stringify(issueLinks))
 }
 
@@ -253,8 +253,12 @@ function getJiraName() {
 }
 
 function changeLocation(location) {
-	console.log("Changing location to: " + location)
+	printLog("Changing location to: " + location)
 	window.location.href = location
+}
+
+function printLog(logMessage) {
+	console.log("GTN monkey: " + logMessage)
 }
 
 function isFunction(functionToCheck) {
@@ -275,7 +279,7 @@ function createButton(title, funcToCall, icon) {
     var href = `javascript:${funcToCall.name}();`
     var anchorClass = "board-header-btn board-header-btn-without-icon board-header-btn-text"
     var anchor = $(`<a class="${anchorClass}" href="${href}" title="${title}">${title}</a>`.trim())
-    console.log("anchor:", anchor)
+    printLog("anchor:", anchor)
     divider.appendTo($('.board-header'));
     anchor.appendTo($('.board-header'));
 }
