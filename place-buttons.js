@@ -18,4 +18,7 @@ function createButton(title, funcToCall, icon) {
     anchor.appendTo($('.saved-search-operations '));
 }
 
-createButton("GTN Monkey!", findAllLinksFromJiraIssues)
+var filterPage = window.location.href.startsWith("https://jira.cloudera.com/issues/?filter=")
+if (filterPage) {
+    createButton("GTN Monkey!", findAllLinksFromJiraIssues)    
+}

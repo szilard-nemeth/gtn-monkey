@@ -4,7 +4,7 @@
 // @version      0.1
 // @description  try to take over the world!
 // @author       You
-// @match        https://jira.cloudera.com/issues/?filter=*
+// @match        https://jira.cloudera.com/*
 // @grant        none
 // ==/UserScript==
 

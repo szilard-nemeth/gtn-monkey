@@ -5,45 +5,47 @@ function findAllLinksFromJiraIssues() {
 	//https://jira.cloudera.com/issues/?filter=
 	var originPage = window.location.href.startsWith("https://jira.cloudera.com/issues/?filter=")
 
+
 	if (originPage) {
 		cleanupStorage()
 		storeOriginPage()
 		storeFoundJiraIssues()
-		changeLocation(getFoundJiraIssuesFromStorage()[0])
+		gotoNextPage(getFoundJiraIssuesFromStorage())
 	}
+}
 
+function onDocumentReady() {
+	printLog("Executed document.ready() on page: " + window.location.href)
+	printProgress()
+	var issues = getFoundJiraIssuesFromStorage()
+	printLog("Retrieved jira issues: " + issues)
 
-	//On page ready
-	$(document).ready(function() {
-		printLog("EXECUTED document.ready() on page: " + window.location.href)
-		var issues = getFoundJiraIssuesFromStorage()
-		printLog("Retrieved jira issues: " + issues)
+	if (!issues || issues.length == 0) {
+		printLog("NO JIRA ISSUES FOUND!")
+		return
+	}
+	
+	//double-check URL
+	if (window.location.href === issues[0]) {
+		//Parse GTN links
+		parseGTNLinksFromPage()
+		var parsedPage = issues.shift()
+		//store modified array to localStorage so next execution of onDocumentReady() picks up next page
+		storeFoundJiraIssues(issues)
 
-		if (!issues || issues.length == 0) {
-			printLog("NO JIRA ISSUES FOUND!")
-			return
-		}
-		
-		if (window.location.href === issues[0]) {
-			//Parse GTN links
-			parseGTNLinksFromPage()
-			var parsedPage = issues.shift()
-			printLog("Parsed GTN links from page: " + parsedPage)
+		printLog("Parsed GTN links from page: " + parsedPage)
 
-			//Go to next page
-			if (issues.length > 0) {
-				var newLocation = issues[0]
-				changeLocation(newLocation)
-				
-			} else {
-				printLog("No more pages to process. Changing location to original jira URL: " + getOriginalPageFromStorage())
-				//TODO print all results and go back to original page!
-				changeLocation(getOriginalPageFromStorage())	
-			}
+		//Go to next page
+		if (issues.length > 0) {
+			gotoNextPage(issues)
 		} else {
-			console.error("window.location.href != issues[0]. current page: " + window.location.href + " issues[0]: " + issues[0])
+			printLog("No more pages to process. Changing location to origin jira URL: " + getOriginalPageFromStorage())
+			//TODO print all results and go back to original page!
+			gotoOriginPage()	
 		}
-	});
+	} else {
+		console.error("window.location.href != issues[0]. current page: " + window.location.href + " issues[0]: " + issues[0])
+	}
 }
 
 function loadGtnLinks(issueLinks) {
@@ -117,7 +119,11 @@ function waitForCommentsLoaded(functionsToCall) {
 function parseAndSaveLinksFromDescription() {
 	var description = $('#descriptionmodule p').html()
 	var links = findLinksInHtml(description)
-	storeFoundGTNLinksForJiraIssue(links)
+	if (links != null) {
+		storeFoundGTNLinksForJiraIssue(links)
+	} else {
+		storeFoundGTNLinksForJiraIssue([])
+	}
 }
 
 function parseGTNLinksFromPage() {
@@ -172,6 +178,9 @@ function parseAndSaveComments() {
 }
 
 function findLinksInHtml(html) {
+	if (html == undefined || html == null) {
+		return null
+	}
 	var urlRegex =/(\b(https?|ftp|file):\/\/[-a-zA-Z0-9+&@#\/%?=~_|!:,.;]*[-a-zA-Z0-9+&@#\/%=~_|])/ig;
 	var found = html.match(urlRegex);
 	return found
@@ -226,33 +235,86 @@ function storeOriginPage() {
 	window.localStorage.setItem('gtnmonkey_mainPage', window.location.href)
 }
 
-function storeFoundJiraIssues() {
-	var issueLinks = $('.issue-table-container .issuekey a').map(function() {
-      return "https://jira.cloudera.com" + $(this).attr('href');
-	}).toArray();
-	printLog("Found jira issues: ", issueLinks)
+function storeFoundJiraIssues(jiraIssues) {
+	var issueLinks
+	if (jiraIssues === undefined) {
+		issueLinks = $('.issue-table-container .issuekey a').map(function() {
+      		return "https://jira.cloudera.com" + $(this).attr('href');
+		}).toArray();
+		printLog("Found jira issues: " + issueLinks.toString())
+	} else {
+		issueLinks = jiraIssues
+	}
 	window.localStorage.setItem('gtnmonkey_jiraissues', JSON.stringify(issueLinks))
+	window.localStorage.setItem('gtnmonkey_number_of_jiraissues', issueLinks.length)
+}
+
+function storeProgress(itemIdx) {
+	var numberOfFoundIssues = getNumberOfFoundJiraIssuesFromStorage()
+	var prevProgress = window.localStorage.getItem('gtnmonkey_progress')
+
+	var progress
+	if (prevProgress == null) {
+		progress = 1
+	} else {
+		progress = window.localStorage.getItem('gtnmonkey_progress')
+		progress++
+	}
+	window.localStorage.setItem('gtnmonkey_progress', progress)
+	window.localStorage.setItem('gtnmonkey_progress_str', '' + progress + "/" + numberOfFoundIssues)
+	printLog("Stored progress: " + progress)
 }
 
 //Retrieve functions for localStorage
 function getFoundGTNLinksForJiraIssue(jiraIssue) {
 	var storageKey = 'gtnmonkey_result_' + jiraIssue
-	return JSON.parse(localStorage.getItem(storageKey) || "[]");
+	var gtnLinks = localStorage.getItem(storageKey)
+
+	//TODO figure out why "null" is saved to localStorage
+	if (gtnLinks == null || gtnLinks === "null") {
+		return JSON.parse("[]")
+	} else {
+		return JSON.parse(gtnLinks)
+	}
+	// return JSON.parse(localStorage.getItem(storageKey) || "[]");
 }
 
 function getFoundJiraIssuesFromStorage() {
 	return JSON.parse(localStorage.getItem("gtnmonkey_jiraissues") || "[]");
 }
 
+function getNumberOfFoundJiraIssuesFromStorage() {
+	return window.localStorage.getItem('gtnmonkey_number_of_jiraissues')
+}
+
 function getOriginalPageFromStorage() {
 	return window.localStorage.getItem('gtnmonkey_mainPage')	
+}
+
+function printProgress() {
+	var progress = window.localStorage.getItem('gtnmonkey_progress')
+	var progressStr = window.localStorage.getItem('gtnmonkey_progress_str')
+	printLog("Processing page: " + progress)
+	printLog("Processing page: " + progressStr)
 }
 
 function getJiraName() {
 	return window.location.href.split("browse/")[1]
 }
 
+function gotoNextPage(issues) {
+	changeLocation(issues[0])
+}
+
+function gotoOriginPage() {
+	changeLocation(getOriginalPageFromStorage())
+}
+
 function changeLocation(location) {
+	var origin = getOriginalPageFromStorage()
+	if (location !== origin) {
+		storeProgress()
+	}
 	printLog("Changing location to: " + location)
 	window.location.href = location
 }
@@ -283,6 +345,11 @@ function createButton(title, funcToCall, icon) {
     divider.appendTo($('.board-header'));
     anchor.appendTo($('.board-header'));
 }
+
+//On page ready
+$(document).ready(function() {
+	onDocumentReady()
+});
 
 
  
