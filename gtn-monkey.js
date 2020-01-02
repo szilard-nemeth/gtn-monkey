@@ -407,6 +407,15 @@ myjQuery(document).ready(function() {
 });
 
 function showOverlay() {
+	$(document).keyup(function(e) {
+  		// if (e.keyCode === 13) $('.save').click();     // enter
+
+  		//Hide overlay and dialog on pressing ESC
+  		if (e.keyCode === 27) {
+  			$('#gtnmonkey-dialog').hide();
+  			$('.aui-blanket').hide();
+  		}
+	});
 
 	var overlayDiv = myjQuery(`<div class="aui-blanket" tabindex="0" aria-hidden="false"></div>`)
 	overlayDiv.appendTo(myjQuery('body'))
@@ -415,7 +424,8 @@ function showOverlay() {
 	var title = "GTN MONKEY"
 	progress = getOverallProgress()
 	const markup = `
-	 <div id="gtnmonkey-dialog" class="jira-dialog box-shadow jira-dialog-open popup-width-custom jira-dialog-content-ready" style="width: 900px; margin-left: -406px; margin-top: -383px;">
+	 <div id="gtnmonkey-dialog" class="jira-dialog box-shadow jira-dialog-open popup-width-custom jira-dialog-content-ready aui form-body" 
+	 style="width: 900px;margin-left: -406px;margin-top: -383px;overflow: auto; max-height: 617px; overflow: auto">
 	    <h2 title="${title}">${title}</h2>
 	    <h2 title="${progress}">Processing: ${progress}</h2>
 	    <div class="jira-dialog-content">
