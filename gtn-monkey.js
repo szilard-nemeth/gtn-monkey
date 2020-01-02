@@ -34,7 +34,6 @@ function onDocumentReady() {
 	}
 
 	if (isInProgress()) {
-		// printProgress()
 		var issues = getFoundJiraIssuesFromStorage()
 		printLog("Retrieved jira issues from storage: " + issues)
 
@@ -67,53 +66,9 @@ function navigateToNextPageCallback() {
 		gotoNextPage(issues)
 	} else {
 		printLog("No more pages to process. Changing location to origin jira URL: " + getOriginPageFromStorage())
-		//TODO print all results and go back to original page!
 		gotoOriginPage()
 	}
 }
-
-function loadGtnLinks(issueLinks) {
-	issueLinks.forEach(function(issue, idx) {
-		// (async () => {
-		// 	let response = await fetch(issue);
-		// 	let html = await response.text();
-		// 	printLog("Received html: ", html)
-		// 	}
-	 //    )()
-	 loadToIframe(issue, idx)
-	})
-}
-
-// <iframe id="iframe" name="myIframe" frameborder="5" width="500" height="300"></iframe>
-
-function loadToIframe(url, id) {
-	printLog("Loading url " + url + " to iframe id: " + id)
-	var iframeId = 'iframe' + id
-	var iframe = document.createElement(iframeId);
-	iframe.setAttribute('id', iframeId);
-	iframe.setAttribute('width', "500");
-	iframe.setAttribute('height', "300");
-	iframe.setAttribute('src', url);
-	$('#' + iframeId).on( 'load', function() {
-	    // code will run after iframe has finished loading
-	    printLog("IFRAME LOADED")
-	} );
-
-	$('#' + iframeId).load(url)
-	// document.body.appendChild(iframe);
-	$('.navigator-body').append(iframe)
-	
-}
-
-function myHandler() {
-        alert('iframe (almost) loaded');
-    }
-$(document).on('iframeready', myHandler);
-
-
-
-
-
 
 function waitForCommentsLoaded(functionsToCall) {
 	var waitForEl = function(selector, callbacks, count) {
@@ -176,8 +131,6 @@ function parseAndSaveComments() {
 	//classes: twixi-wrap verbose actionContainer
 	var allLinks = []
 	$('.twixi-wrap > .action-body').each(function() {
-		// printLog($(this).html());
-		// printLog("found: " + findLinksInHtml($(this).html()))
 		var links = findLinksInHtml($(this).html())
 
 		if (links == null) {
@@ -338,7 +291,6 @@ function getStoredJiraDataForIssue(jiraIssue) {
 	jiraData = Object.assign(new JiraData(null, null, []), jiraData)
 
 	return jiraData
-	// return JSON.parse(localStorage.getItem(storageKey) || "[]");
 }
 
 function getFoundJiraIssuesFromStorage() {
@@ -352,13 +304,6 @@ function getNumberOfFoundJiraIssuesFromStorage() {
 function getOriginPageFromStorage() {
 	return window.localStorage.getItem('gtnmonkey_mainPage')	
 }
-
-// function printProgress() {
-// 	var progress = window.localStorage.getItem('gtnmonkey_progress')
-// 	var progressStr = window.localStorage.getItem('gtnmonkey_progress_str')
-// 	printLog("Processing page: " + progress)
-// 	printLog("Processing page: " + progressStr)
-// }
 
 function getOverallProgress() {
 	return window.localStorage.getItem('gtnmonkey_progress_str')
@@ -421,7 +366,6 @@ function createButton(title, funcToCall, icon) {
     var href = `javascript:${funcToCall.name}();`
     var anchorClass = "board-header-btn board-header-btn-without-icon board-header-btn-text"
     var anchor = $(`<a class="${anchorClass}" href="${href}" title="${title}">${title}</a>`.trim())
-    // printLog("anchor:", anchor)
     divider.appendTo($('.board-header'));
     anchor.appendTo($('.board-header'));
 }
@@ -498,8 +442,6 @@ function showTable() {
 
 	var results = findLocalStorageItems("gtnmonkey_result_", false)
 	results.forEach(r => {
-		// printLog("***ROW: " + JSON.stringify(r))
-		// printLog("Deleting localStorage item " + r.key);
 		appendRowToResultTable(r.key, r.val)
 	})
 }
@@ -507,7 +449,6 @@ function showTable() {
 function appendRowToResultTable(issueKey, jiraData) {
 	
 	function createRow(jiraData) {
-		//TODO place N/A if no link found
 		const template = 
 		`
 		<tr>
@@ -529,7 +470,6 @@ function appendRowToResultTable(issueKey, jiraData) {
 	}
 
 	var html = createRow(jiraData);
-	// printLog("***HTML: " + html)
 	$('#gtnmonkey-results-tbody tr').last().after(html);
 }
 
