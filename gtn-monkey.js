@@ -22,6 +22,12 @@ class JiraData {
 
 function findAllLinksFromJiraIssues() {
 	//Start up the scraping process
+	var originPage = window.location.href.startsWith("https://jira.cloudera.com/issues/?filter=")
+	if (originPage && !isInProgress() && isFinished()) {
+		printLog("We are on origin page, cleaning up storage...")
+		cleanupStorage()
+	}
+
 	storeProgress("Started")
 	storeOriginPage()
 	
@@ -31,18 +37,11 @@ function findAllLinksFromJiraIssues() {
 		printLog("NO JIRA ISSUES FOUND IN CURRENT PAGE!")
 		return
 	}
-
 	gotoNextPage(getFoundJiraIssuesFromStorage())
 }
 
 function onDocumentReady() {
 	printLog("Executed document.ready() on page: " + window.location.href)
-
-	var originPage = window.location.href.startsWith("https://jira.cloudera.com/issues/?filter=")
-	if (originPage && !isInProgress()) {
-		printLog("We are on origin page, cleaning up storage...")
-		cleanupStorage()
-	}
 
 	if (isInProgress()) {
 		var issues = getFoundJiraIssuesFromStorage()
@@ -54,7 +53,7 @@ function onDocumentReady() {
 		} else if (location == getOriginPageFromStorage() && isInProgress()) {
 			//Show overlay if we got back to the origin page in order to show final results
 			stopProgress()
-			showOverlay()
+			checkIfQuantaLinksAreAccessible()
 		} else {
 			console.error("window.location.href != issues[0]. current page: " + window.location.href + " issues[0]: " + issues[0])
 		}
@@ -243,9 +242,6 @@ function storeFoundGTNLinks(jiraIssue, jiraData, newLinks) {
 	printLog("Found new GTN links: " + JSON.stringify(newLinks))
 
 	var jiraTitle = myjQuery('#summary-val').text()
-
-	//
-	//
 	var prefix = "http://cloudera-build-us-west-1.vpc.cloudera.com/s3/quanta/$GTN$/QUASAR_ZIP_FOLDER/"
 	var testLogsTemplate = prefix + "QUASAR_TEST_LOGS.zip"
 	var diagBundleTemplate = prefix + "QUASAR_DIAG_LOGS.zip"
@@ -312,7 +308,6 @@ function stopProgress() {
 function getStoredJiraDataForIssue(jiraIssue) {
 	var jiraData = JSON.parse(localStorage.getItem('gtnmonkey_result_' + jiraIssue))
 	jiraData = Object.assign(new JiraData(null, null, [], [], []), jiraData)
-
 	return jiraData
 }
 
@@ -338,6 +333,14 @@ function isInProgress() {
 		return false
 	}
 	return true
+}
+
+function isFinished() {
+	var progress = window.localStorage.getItem('gtnmonkey_progress')
+	if (progress === "Finished") {
+		return true
+	}
+	return false
 }
 
 function getJiraName() {
@@ -498,13 +501,13 @@ function appendRowToResultTable(issueKey, jiraData) {
 			</td>
 			<td>
 			${jiraData.quantaTestLogs.length > 0 ?
-				`${jiraData.quantaTestLogs.map((link, i) => `<p><a href="${link}">GTN-${jiraData.links[i].split("gtn=")[1]}-TESTLOG</a></p>`).join('')}` :
+				`${jiraData.quantaTestLogs.map((link, i) => `<p id="quantalog-${jiraData.id}-${jiraData.links[i].split("gtn=")[1]}"><a href="${link}">${jiraData.links[i].split("gtn=")[1]}</a></p>`).join('')}` :
 				"<p>N/A</p>"
 			}
 			</td>
 			<td>
 			${jiraData.quantaDiagBundles.length > 0 ?
-				`${jiraData.quantaDiagBundles.map((link, i) => `<p><a href="${link}">GTN-${jiraData.links[i].split("gtn=")[1]}-BUNDLE</a></p>`).join('')}` :
+				`${jiraData.quantaDiagBundles.map((link, i) => `<p id="quantabundle-${jiraData.id}-${jiraData.links[i].split("gtn=")[1]}"><a href="${link}">${jiraData.links[i].split("gtn=")[1]}</a></p>`).join('')}` :
 				"<p>N/A</p>"
 			}
 			</td>
@@ -523,7 +526,65 @@ function addResultsToTable() {
 	appendRowToResultTable(jiraIssue, jiraData)
 }
 
-if (isInProgress()) {
+function checkIfQuantaLinksAreAccessible() {
+	var issues = findLocalStorageItems("gtnmonkey_result_", false)
+	issues.forEach(issue => {
+		var jiraData = issue.val;
+		jiraData.links.forEach(link => {
+			var gtn = link.split("gtn=")[1]
+			var quantaLogCellKey = `#quantalog-${jiraData.id}-${gtn}`
+			var quantaBundleCellKey = `#quantabundle-${jiraData.id}-${gtn}`
+
+			//TODO read these from jiraData object instead!
+			var quantaLogLink = myjQuery(quantaLogCellKey + ' a').attr('href')
+			var quantaBundleLink = myjQuery(quantaBundleCellKey + ' a').attr('href')
+			checkURL(quantaLogLink)
+			checkURL(quantaBundleLink)
+			
+
+			// myjQuery(quantaLogCellKey).css("background-color", "gray");
+			// myjQuery(quantaBundleCellKey).css("background-color", "yellow");
+		})
+	})
+}
+
+async function getURL(url = '') {
+  const response = await fetch(url, {
+	method: 'GET',
+	// mode: 'cors',
+	mode: 'cors',
+	cache: 'no-cache',
+	credentials: 'same-origin',
+	headers: {
+		'X-Requested-With': 'http://cloudera-build-us-west-1.vpc.cloudera.com',
+	  // 'Content-Type': 'application/json'
+	  // 'Content-Type': 'application/x-www-form-urlencoded',
+	},
+  });
+  return await response 
+}
+
+function checkURL(url) {
+	//https://medium.com/netscape/hacking-it-out-when-cors-wont-let-you-be-great-35f6206cc646
+	//https://github.com/Rob--W/cors-anywhere
+	getURL('https://cors-anywhere.herokuapp.com/' + url).then((response) => {
+    	console.log("***RECEIVED DATA: " + response);
+    	console.log("***RECEIVED url: " + response.url);
+    	console.log("***RECEIVED ok: " + response.ok);
+    	console.log("***RECEIVED status: " + response.status);
+  	}).catch(function (error) {
+    	console.log('Request failed', error);
+	// xhr.setRequestHeader("Origin", 'maximum.blog');
+	// myjQuery.get(url)
+	//     .done(function() { 
+	//         printLog("URL OK")
+	//     }).fail(function() { 
+	//         printLog("URL NOT OK")
+	//     })
+	});
+}
+
+if (isInProgress() || isFinished()) {
 	console.log("***SHOWING OVERLAY...")
 	showOverlay()
 }
