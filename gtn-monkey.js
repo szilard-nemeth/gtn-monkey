@@ -1,5 +1,5 @@
 class JiraData {
-  constructor(id, title, links) {    
+  constructor(id, title, links, quantaTestLogs, quantaDiagBundles) {    
     this.id = id;
     this.title = title;
 
@@ -7,6 +7,16 @@ class JiraData {
     	this.links = []
     }
     this.links = links;
+
+    if (quantaTestLogs == null || quantaTestLogs == undefined) {
+    	this.quantaTestLogs = []
+    }
+    this.quantaTestLogs = quantaTestLogs;
+
+    if (quantaDiagBundles == null || quantaDiagBundles == undefined) {
+    	this.quantaDiagBundles = []
+    }
+    this.quantaDiagBundles = quantaDiagBundles;
   }
 }
 
@@ -233,7 +243,16 @@ function storeFoundGTNLinks(jiraIssue, jiraData, newLinks) {
 	printLog("Found new GTN links: " + JSON.stringify(newLinks))
 
 	var jiraTitle = myjQuery('#summary-val').text()
-	var data = new JiraData(jiraIssue, jiraTitle, jiraData.links)
+
+	//
+	//
+	var prefix = "http://cloudera-build-us-west-1.vpc.cloudera.com/s3/quanta/$GTN$/QUASAR_ZIP_FOLDER/"
+	var testLogsTemplate = prefix + "QUASAR_TEST_LOGS.zip"
+	var diagBundleTemplate = prefix + "QUASAR_DIAG_LOGS.zip"
+	var quantaTestLogs = jiraData.links.map(link => testLogsTemplate.replace("$GTN$", link.split("gtn=")[1]))
+	var quantaDiagBundles = jiraData.links.map(link => diagBundleTemplate.replace("$GTN$", link.split("gtn=")[1]))
+
+	var data = new JiraData(jiraIssue, jiraTitle, jiraData.links, quantaTestLogs, quantaDiagBundles)
 	var dataJson = JSON.stringify(data)
 	printLog("Storing JiraData: " + dataJson)
 	window.localStorage.setItem('gtnmonkey_result_' + jiraIssue, dataJson);
@@ -292,7 +311,7 @@ function stopProgress() {
 //Retrieve functions for localStorage
 function getStoredJiraDataForIssue(jiraIssue) {
 	var jiraData = JSON.parse(localStorage.getItem('gtnmonkey_result_' + jiraIssue))
-	jiraData = Object.assign(new JiraData(null, null, []), jiraData)
+	jiraData = Object.assign(new JiraData(null, null, [], [], []), jiraData)
 
 	return jiraData
 }
@@ -393,7 +412,7 @@ function showOverlay() {
 	var title = "GTN MONKEY"
 	progress = getOverallProgress()
 	const markup = `
-	 <div id="gtnmonkey-dialog" class="jira-dialog box-shadow jira-dialog-open popup-width-custom jira-dialog-content-ready" style="width: 810px; margin-left: -406px; margin-top: -383px;">
+	 <div id="gtnmonkey-dialog" class="jira-dialog box-shadow jira-dialog-open popup-width-custom jira-dialog-content-ready" style="width: 900px; margin-left: -406px; margin-top: -383px;">
 	    <h2 title="${title}">${title}</h2>
 	    <h2 title="${progress}">Processing: ${progress}</h2>
 	    <div class="jira-dialog-content">
@@ -438,6 +457,12 @@ function showTable() {
                             <th>
                                 <span title="links">GTN Links</span>
                             </th>
+                            <th>
+                                <span title="quanta-testlogs">Test logs</span>
+                            </th>
+                            <th>
+                                <span title="quanta-diagbundles">Diag bundles</span>
+                            </th>
                         </tr>
                     </thead>
 
@@ -468,6 +493,18 @@ function appendRowToResultTable(issueKey, jiraData) {
 			<td>
 			${jiraData.links.length > 0 ?
 				`${jiraData.links.map((link, i) => `<p><a href="${link}">${link.split("gtn=")[1]}</a></p>`).join('')}` :
+				"<p>N/A</p>"
+			}
+			</td>
+			<td>
+			${jiraData.quantaTestLogs.length > 0 ?
+				`${jiraData.quantaTestLogs.map((link, i) => `<p><a href="${link}">GTN-${jiraData.links[i].split("gtn=")[1]}-TESTLOG</a></p>`).join('')}` :
+				"<p>N/A</p>"
+			}
+			</td>
+			<td>
+			${jiraData.quantaDiagBundles.length > 0 ?
+				`${jiraData.quantaDiagBundles.map((link, i) => `<p><a href="${link}">GTN-${jiraData.links[i].split("gtn=")[1]}-BUNDLE</a></p>`).join('')}` :
 				"<p>N/A</p>"
 			}
 			</td>
