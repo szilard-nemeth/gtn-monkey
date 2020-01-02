@@ -13,7 +13,7 @@ function createButton(title, funcToCall, icon) {
 
     var href = `javascript:${funcToCall.name}();`
     var anchorClass = "aui-button aui-button-subtle issuenav-share no-icon"
-    var anchor = $(`<a class="${anchorClass}" href="${href}" title="${title}">${title}</a>`.trim())
+    var anchor = myjQuery(`<a class="${anchorClass}" href="${href}" title="${title}">${title}</a>`.trim())
     console.log("anchor:", anchor)
     anchor.appendTo($('.saved-search-operations '));
 }

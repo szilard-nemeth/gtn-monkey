@@ -12,6 +12,7 @@ class JiraData {
 
 function findAllLinksFromJiraIssues() {
 	//Start up the scraping process
+	storeProgress("Started")
 	storeOriginPage()
 	
 	var issues = storeFoundJiraIssues()
@@ -39,11 +40,7 @@ function onDocumentReady() {
 
 		//double-check URL
 		if (issues && issues.length > 0 && window.location.href === issues[0]) {
-			if (isInProgress()) {
-				showOverlay()
-			}
 			parseGTNLinksFromPage(navigateToNextPageCallback)
-			
 		} else if (location == getOriginPageFromStorage() && isInProgress()) {
 			//Show overlay if we got back to the origin page in order to show final results
 			stopProgress()
@@ -55,6 +52,7 @@ function onDocumentReady() {
 }
 
 function navigateToNextPageCallback() {
+	addResultsToTable()
 	var issues = getFoundJiraIssuesFromStorage()
 	var parsedPage = issues.shift()
 	printLog("Parsed GTN links from current page")
@@ -76,7 +74,7 @@ function waitForCommentsLoaded(functionsToCall) {
 			count = 0;
 		}
 		printLog("Waiting for " + selector + " to disappear... Tried: " + count + " times.")
-		if ($(selector).length == 0) {
+		if (myjQuery(selector).length == 0) {
 			var callbackNames = callbacks.map(c => c.name)
 			printLog("waitForCommentsLoaded: Selector: " + selector + ", callbacks: " + callbackNames + ", count: " + count)
 			callbacks.forEach(c => c())
@@ -96,13 +94,13 @@ function waitForCommentsLoaded(functionsToCall) {
 	};
 
 	//<span class="show-more-comments" data-collapsed-count="18">Loading...</span>
-	var selector = $(".show-more-comments");
+	var selector = myjQuery(".show-more-comments");
 
 	waitForEl(".show-more-comments", functionsToCall);
 }
 
 function parseAndSaveLinksFromDescription() {
-	var description = $('#descriptionmodule p').html()
+	var description = myjQuery('#descriptionmodule p').html()
 	var links = findLinksInHtml(description)
 	if (links != null) {
 		storeFoundGTNLinksForJiraIssue(links)
@@ -118,7 +116,9 @@ function parseGTNLinksFromPage(callback) {
 	//<a class="collapsed-comments" href="/browse/CDH-76879?page=com.atlassian.jira.plugin.system.issuetabpanels:comment-tabpanel&amp;showAll=true">
 	//<span class="collapsed-comments-line"></span>
 	//<span class="collapsed-comments-line"></span><span class="show-more-comments" data-collapsed-count="18">18 older comments</span></a>
-	$('.collapsed-comments').trigger('click')
+	myjQuery('.collapsed-comments').trigger("click")
+	//TODO can't figure out why the call above does not work!!	
+	jQuery('.collapsed-comments').trigger("click")
 	
 
 	//Wait for comments to be loaded
@@ -130,8 +130,8 @@ function parseAndSaveComments() {
 	printLog("Comments loaded");
 	//classes: twixi-wrap verbose actionContainer
 	var allLinks = []
-	$('.twixi-wrap > .action-body').each(function() {
-		var links = findLinksInHtml($(this).html())
+	myjQuery('.twixi-wrap > .action-body').each(function() {
+		var links = findLinksInHtml(myjQuery(this).html())
 
 		if (links == null) {
 			storeFoundGTNLinksForJiraIssue([])
@@ -232,7 +232,7 @@ function storeFoundGTNLinks(jiraIssue, jiraData, newLinks) {
 	jiraData.links = jiraData.links.concat(newLinks)
 	printLog("Found new GTN links: " + JSON.stringify(newLinks))
 
-	var jiraTitle = $('#summary-val').text()
+	var jiraTitle = myjQuery('#summary-val').text()
 	var data = new JiraData(jiraIssue, jiraTitle, jiraData.links)
 	var dataJson = JSON.stringify(data)
 	printLog("Storing JiraData: " + dataJson)
@@ -248,8 +248,8 @@ function storeOriginPage() {
 function storeFoundJiraIssues(jiraIssues) {
 	var issueLinks
 	if (jiraIssues === undefined) {
-		issueLinks = $('.issue-table-container .issuekey a').map(function() {
-      		return "https://jira.cloudera.com" + $(this).attr('href');
+		issueLinks = myjQuery('.results-panel .issuekey a').map(function() {
+      		return "https://jira.cloudera.com" + myjQuery(this).attr('href');
 		}).toArray();
 		printLog("Found jira issues on origin (filter) page: " + issueLinks.toString())
 
@@ -264,12 +264,16 @@ function storeFoundJiraIssues(jiraIssues) {
 	return issueLinks
 }
 
-function storeProgress() {
+function storeProgress(state) {
+	if (state != undefined && state != null) {
+		window.localStorage.setItem('gtnmonkey_progress', state)	
+	}
+
 	var numberOfFoundIssues = getNumberOfFoundJiraIssuesFromStorage()
 	var prevProgress = window.localStorage.getItem('gtnmonkey_progress')
 
 	var progress
-	if (prevProgress == null) {
+	if (prevProgress == null || prevProgress === "Started") {
 		progress = 1
 	} else {
 		progress = parseInt(prevProgress, 10) + 1
@@ -280,8 +284,8 @@ function storeProgress() {
 }
 
 function stopProgress() {
-	window.localStorage.removeItem('gtnmonkey_progress')
-	window.localStorage.removeItem('gtnmonkey_progress_str')
+	window.localStorage.setItem('gtnmonkey_progress', "Finished")
+	window.localStorage.setItem('gtnmonkey_progress_str', "Finished")
 	printLog("Stopped progress")
 }
 
@@ -310,7 +314,11 @@ function getOverallProgress() {
 }
 
 function isInProgress() {
-	return window.localStorage.getItem('gtnmonkey_progress') != null
+	var progress = window.localStorage.getItem('gtnmonkey_progress')
+	if (progress == null || progress === "Finished") {
+		return false
+	}
+	return true
 }
 
 function getJiraName() {
@@ -353,7 +361,7 @@ function isFunction(functionToCheck) {
 }
 
 function createButton(title, funcToCall, icon) {
-    var divider = $('<span class="board-header-btn-divider"></span>')
+    var divider = myjQuery('<span class="board-header-btn-divider"></span>')
 
     if (title === undefined || title == "") {
     	throw "Title should be defined!"
@@ -365,21 +373,21 @@ function createButton(title, funcToCall, icon) {
 
     var href = `javascript:${funcToCall.name}();`
     var anchorClass = "board-header-btn board-header-btn-without-icon board-header-btn-text"
-    var anchor = $(`<a class="${anchorClass}" href="${href}" title="${title}">${title}</a>`.trim())
-    divider.appendTo($('.board-header'));
-    anchor.appendTo($('.board-header'));
+    var anchor = myjQuery(`<a class="${anchorClass}" href="${href}" title="${title}">${title}</a>`.trim())
+    divider.appendTo(myjQuery('.board-header'));
+    anchor.appendTo(myjQuery('.board-header'));
 }
 
 //===============================
 //On page ready
-$(document).ready(function() {
+myjQuery(document).ready(function() {
 	onDocumentReady()
 });
 
 function showOverlay() {
 
-	var overlayDiv = $(`<div class="aui-blanket" tabindex="0" aria-hidden="false"></div>`)
-	overlayDiv.appendTo($('body'))
+	var overlayDiv = myjQuery(`<div class="aui-blanket" tabindex="0" aria-hidden="false"></div>`)
+	overlayDiv.appendTo(myjQuery('body'))
 
 
 	var title = "GTN MONKEY"
@@ -396,8 +404,8 @@ function showOverlay() {
 	 </div>
 	`;
 
-	var dialog = $(markup)
-	dialog.appendTo($('body'))
+	var dialog = myjQuery(markup)
+	dialog.appendTo(myjQuery('body'))
 
 	showTable()
 }
@@ -437,8 +445,8 @@ function showTable() {
                     <tr></tr>
                     </tbody>
 	`
-	var table = $(markup)
-	table.appendTo($('#gtnmonkey-dialog'))
+	var table = myjQuery(markup)
+	table.appendTo(myjQuery('#gtnmonkey-dialog'))
 
 	var results = findLocalStorageItems("gtnmonkey_result_", false)
 	results.forEach(r => {
@@ -447,7 +455,6 @@ function showTable() {
 }
 
 function appendRowToResultTable(issueKey, jiraData) {
-	
 	function createRow(jiraData) {
 		const template = 
 		`
@@ -470,11 +477,16 @@ function appendRowToResultTable(issueKey, jiraData) {
 	}
 
 	var html = createRow(jiraData);
-	$('#gtnmonkey-results-tbody tr').last().after(html);
+	myjQuery('#gtnmonkey-results-tbody tr').last().after(html);
 }
 
 function addResultsToTable() {
 	var jiraIssue = getJiraName()
 	var jiraData = getStoredJiraDataForIssue(jiraIssue)
 	appendRowToResultTable(jiraIssue, jiraData)
+}
+
+if (isInProgress()) {
+	console.log("***SHOWING OVERLAY...")
+	showOverlay()
 }

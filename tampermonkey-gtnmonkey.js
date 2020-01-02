@@ -6,6 +6,7 @@
 // @author       You
 // @match        https://jira.cloudera.com/*
 // @grant        none
+// @run-at       document-start
 // ==/UserScript==
 
 (function() {
@@ -13,6 +14,8 @@
     var tag = document.createElement("script");
 	tag.src = "http://localhost:8080/loader.js"
 	document.getElementsByTagName("head")[0].appendChild(tag);
-    var scripts = $('script[type="text/javascript"]')
-    console.log("Found scripts: ", scripts)
+
+	//If @run-at is 'document-start', we can't assume jQuery is available at this point!
+    // var scripts = $('script[type="text/javascript"]')
+    // console.log("Found scripts: ", scripts)
 })();
