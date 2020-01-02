@@ -1,50 +1,74 @@
+class JiraData {
+  constructor(id, title, links) {    
+    this.id = id;
+    this.title = title;
+
+    if (links == null || links == undefined) {
+    	this.links = []
+    }
+    this.links = links;
+  }
+}
+
 function findAllLinksFromJiraIssues() {
-	var issues = getFoundJiraIssuesFromStorage()
-
-	//Starting up the scraping process
-	//https://jira.cloudera.com/issues/?filter=
-	var originPage = window.location.href.startsWith("https://jira.cloudera.com/issues/?filter=")
-
-
-	if (originPage) {
-		cleanupStorage()
-		storeOriginPage()
-		storeFoundJiraIssues()
-		gotoNextPage(getFoundJiraIssuesFromStorage())
+	//Start up the scraping process
+	storeOriginPage()
+	
+	var issues = storeFoundJiraIssues()
+	if (!issues || issues.length == 0) {
+		//TODO show this message as a popup?
+		printLog("NO JIRA ISSUES FOUND IN CURRENT PAGE!")
+		return
 	}
+
+	gotoNextPage(getFoundJiraIssuesFromStorage())
 }
 
 function onDocumentReady() {
 	printLog("Executed document.ready() on page: " + window.location.href)
-	printProgress()
-	var issues = getFoundJiraIssuesFromStorage()
-	printLog("Retrieved jira issues: " + issues)
 
-	if (!issues || issues.length == 0) {
-		printLog("NO JIRA ISSUES FOUND!")
-		return
+	var originPage = window.location.href.startsWith("https://jira.cloudera.com/issues/?filter=")
+	if (originPage && !isInProgress()) {
+		printLog("We are on origin page, cleaning up storage...")
+		cleanupStorage()
 	}
-	
-	//double-check URL
-	if (window.location.href === issues[0]) {
-		//Parse GTN links
-		parseGTNLinksFromPage()
-		var parsedPage = issues.shift()
-		//store modified array to localStorage so next execution of onDocumentReady() picks up next page
-		storeFoundJiraIssues(issues)
 
-		printLog("Parsed GTN links from page: " + parsedPage)
+	if (isInProgress()) {
+		// printProgress()
+		var issues = getFoundJiraIssuesFromStorage()
+		printLog("Retrieved jira issues from storage: " + issues)
 
-		//Go to next page
-		if (issues.length > 0) {
-			gotoNextPage(issues)
+		//double-check URL
+		if (issues && issues.length > 0 && window.location.href === issues[0]) {
+			if (isInProgress()) {
+				showOverlay()
+			}
+			parseGTNLinksFromPage(navigateToNextPageCallback)
+			
+		} else if (location == getOriginPageFromStorage() && isInProgress()) {
+			//Show overlay if we got back to the origin page in order to show final results
+			stopProgress()
+			showOverlay()
 		} else {
-			printLog("No more pages to process. Changing location to origin jira URL: " + getOriginalPageFromStorage())
-			//TODO print all results and go back to original page!
-			gotoOriginPage()	
+			console.error("window.location.href != issues[0]. current page: " + window.location.href + " issues[0]: " + issues[0])
 		}
+	}
+}
+
+function navigateToNextPageCallback() {
+	var issues = getFoundJiraIssuesFromStorage()
+	var parsedPage = issues.shift()
+	printLog("Parsed GTN links from current page")
+	//store modified jira issues array to localStorage so next execution of onDocumentReady() picks up next page
+	storeFoundJiraIssues(issues)
+
+	//Navigate to next page
+	if (issues.length > 0) {
+		gotoNextPage(issues)
 	} else {
-		console.error("window.location.href != issues[0]. current page: " + window.location.href + " issues[0]: " + issues[0])
+		printLog("No more pages to process. Changing location to origin jira URL: " + getOriginPageFromStorage())
+		//TODO print all results and go back to original page!
+		gotoOriginPage()
 	}
 }
 
@@ -93,21 +117,27 @@ $(document).on('iframeready', myHandler);
 
 function waitForCommentsLoaded(functionsToCall) {
 	var waitForEl = function(selector, callbacks, count) {
-	  if ($(selector).length == 0) {
-	  	callbacks.forEach(c => c())
-	    // callback();
-	  } else {
-	    setTimeout(function() {
-	      if(!count) {
-	        count=0;
-	      }
-	      count++;
-	      printLog("count: " + count);
-	      if(count<10) {
-	        waitForEl(selector, callbacks, count);
-	      } else {return;}
-	    }, 1000);
-	  }
+		if (!count) {
+			count = 0;
+		}
+		printLog("Waiting for " + selector + " to disappear... Tried: " + count + " times.")
+		if ($(selector).length == 0) {
+			var callbackNames = callbacks.map(c => c.name)
+			printLog("waitForCommentsLoaded: Selector: " + selector + ", callbacks: " + callbackNames + ", count: " + count)
+			callbacks.forEach(c => c())
+		} else {
+			setTimeout(function() {
+				if (!count) {
+					count = 0;
+				}
+				count++;
+				if (count < 10) {
+					waitForEl(selector, callbacks, count);
+				} else { 
+					return; 
+				}
+			}, 1000);
+		}
 	};
 
 	//<span class="show-more-comments" data-collapsed-count="18">Loading...</span>
@@ -126,8 +156,8 @@ function parseAndSaveLinksFromDescription() {
 	}
 }
 
-function parseGTNLinksFromPage() {
-	printLog("Parsing GTN links from current page: " + window.location.href)
+function parseGTNLinksFromPage(callback) {
+	printLog("Parsing GTN links from current page")
 	//Click on show more comments button
 
 	//<a class="collapsed-comments" href="/browse/CDH-76879?page=com.atlassian.jira.plugin.system.issuetabpanels:comment-tabpanel&amp;showAll=true">
@@ -138,11 +168,11 @@ function parseGTNLinksFromPage() {
 
 	//Wait for comments to be loaded
 	//https://gist.github.com/chrisjhoughton/7890303
-	waitForCommentsLoaded([parseAndSaveComments, parseAndSaveLinksFromDescription])
+	waitForCommentsLoaded([parseAndSaveComments, parseAndSaveLinksFromDescription, callback])
 }
 
 function parseAndSaveComments() {
-	printLog("***COMMENTS LOADED");
+	printLog("Comments loaded");
 	//classes: twixi-wrap verbose actionContainer
 	var allLinks = []
 	$('.twixi-wrap > .action-body').each(function() {
@@ -153,21 +183,6 @@ function parseAndSaveComments() {
 		if (links == null) {
 			storeFoundGTNLinksForJiraIssue([])
 		} else {
-			links = links.map(function(link) {
-			if (link.indexOf("gtn=") != -1) {
-				printLog("Found link matching GTN: " + link)
-				return link;
-			} else {
-				return null
-			}
-			})
-			//printLog("***links: " + JSON.stringify(links))
-			links = links.filter(function(link) {
-			  if (link == null) {
-			    return false;
-			  }
-			  return true;
-			})
 			if (links.length > 0) {
 				allLinks = allLinks.concat(links)
 			}
@@ -181,9 +196,53 @@ function findLinksInHtml(html) {
 	if (html == undefined || html == null) {
 		return null
 	}
+
 	var urlRegex =/(\b(https?|ftp|file):\/\/[-a-zA-Z0-9+&@#\/%?=~_|!:,.;]*[-a-zA-Z0-9+&@#\/%=~_|])/ig;
-	var found = html.match(urlRegex);
-	return found
+	var links = html.match(urlRegex);
+	
+	if (links == null || links == undefined) {
+		return []
+	}
+
+	let filterDupes = (links) => links.filter((v,i) => links.indexOf(v) === i)
+	links = filterDupes(links)
+
+	links = links.map(function(link) {
+		if (link.indexOf("gtn=") != -1) {
+			printLog("Found link matching GTN: " + link)
+			return link;
+		} else {
+			return null
+		}
+	})
+
+	links = links.filter(function(link) {
+	  if (link == null) {
+	    return false;
+	  }
+	  return true;
+	})
+
+	return links
+}
+
+function findLocalStorageItems(query, includeQueryInKeys) {
+	//https://gist.github.com/n0m4dz/77f08d3de1b9115e905c
+	var i, results = [];
+	for (i in localStorage) {
+		if (localStorage.hasOwnProperty(i)) {
+		  if (i.match(query) || (!query && typeof i === 'string')) {
+		    value = JSON.parse(localStorage.getItem(i));
+
+		    var key = i
+		    if (!includeQueryInKeys && key.indexOf(query) == 0) {
+		    	key = key.substr(query.length)
+		    } 
+		    results.push({key:key, val:value});
+		  }
+		}
+	}
+	return results;
 }
 
 
@@ -193,46 +252,44 @@ function cleanupStorage() {
 	//gtnmonkey_result_*
 	//gtnmonkey_mainPage
 	//gtnmonkey_jiraissues
-
-	//https://gist.github.com/n0m4dz/77f08d3de1b9115e905c
-	function findLocalItems(query) {
-		var i, results = [];
-		for (i in localStorage) {
-		if (localStorage.hasOwnProperty(i)) {
-		  if (i.match(query) || (!query && typeof i === 'string')) {
-		    value = JSON.parse(localStorage.getItem(i));
-		    results.push({key:i,val:value});
-		  }
-		}
-		}
-		return results;
-	}
-	var results = findLocalItems("gtnmonkey_result_")
+	var results = findLocalStorageItems("gtnmonkey_result_", true)
 	results.forEach(r => {
 		printLog("Deleting localStorage item " + r.key);
-		window.localStorage.setItem(r.key, null);
+		window.localStorage.removeItem(r.key);
 	})
 
-	window.localStorage.setItem("gtnmonkey_mainPage", null)
-	window.localStorage.setItem("gtnmonkey_jiraissues", null)
+	window.localStorage.removeItem("gtnmonkey_mainPage")
+	window.localStorage.removeItem("gtnmonkey_jiraissues")
+	window.localStorage.removeItem("gtnmonkey_number_of_jiraissues")
+	window.localStorage.removeItem('gtnmonkey_progress')
+	window.localStorage.removeItem('gtnmonkey_progress_str')
 }
 
 function storeFoundGTNLinksForJiraIssue(newLinks) {
 	var jiraIssue = getJiraName()
-	var gtnLinks = getFoundGTNLinksForJiraIssue(jiraIssue)
-	storeFoundGTNLinks(jiraIssue, gtnLinks, newLinks)
+	var jiraData = getStoredJiraDataForIssue(jiraIssue)
+	storeFoundGTNLinks(jiraIssue, jiraData, newLinks)
 }
 
-function storeFoundGTNLinks(jiraIssue, gtnLinks, newLinks) {
-	if (gtnLinks > 0) {
-		printLog("Found data for '" + storageKey + "', appending data to it")
-	}	
-	printLog("Found new GTN links for jira " + jiraIssue + ": " + JSON.stringify(newLinks))
-	window.localStorage.setItem('gtnmonkey_result_' + jiraIssue, JSON.stringify(gtnLinks.concat(newLinks)));
+function storeFoundGTNLinks(jiraIssue, jiraData, newLinks) {
+	if (jiraData.links > 0) {
+		printLog("Found data for '" + jiraIssue + "', appending data to it")
+	}
+
+	jiraData.links = jiraData.links.concat(newLinks)
+	printLog("Found new GTN links: " + JSON.stringify(newLinks))
+
+	var jiraTitle = $('#summary-val').text()
+	var data = new JiraData(jiraIssue, jiraTitle, jiraData.links)
+	var dataJson = JSON.stringify(data)
+	printLog("Storing JiraData: " + dataJson)
+	window.localStorage.setItem('gtnmonkey_result_' + jiraIssue, dataJson);
 }
 
 function storeOriginPage() {
-	window.localStorage.setItem('gtnmonkey_mainPage', window.location.href)
+	var origin = window.location.href
+	window.localStorage.setItem('gtnmonkey_mainPage', origin)
+	printLog("Stored origin page: " + origin)
 }
 
 function storeFoundJiraIssues(jiraIssues) {
@@ -241,15 +298,20 @@ function storeFoundJiraIssues(jiraIssues) {
 		issueLinks = $('.issue-table-container .issuekey a').map(function() {
       		return "https://jira.cloudera.com" + $(this).attr('href');
 		}).toArray();
-		printLog("Found jira issues: " + issueLinks.toString())
+		printLog("Found jira issues on origin (filter) page: " + issueLinks.toString())
+
+		//Only store number of jira issues if this is the initial run
+		window.localStorage.setItem('gtnmonkey_number_of_jiraissues', issueLinks.length)
 	} else {
+		printLog("Storing jira issues: " + jiraIssues.toString())
 		issueLinks = jiraIssues
 	}
 	window.localStorage.setItem('gtnmonkey_jiraissues', JSON.stringify(issueLinks))
-	window.localStorage.setItem('gtnmonkey_number_of_jiraissues', issueLinks.length)
+
+	return issueLinks
 }
 
-function storeProgress(itemIdx) {
+function storeProgress() {
 	var numberOfFoundIssues = getNumberOfFoundJiraIssuesFromStorage()
 	var prevProgress = window.localStorage.getItem('gtnmonkey_progress')
 
@@ -257,25 +319,25 @@ function storeProgress(itemIdx) {
 	if (prevProgress == null) {
 		progress = 1
 	} else {
-		progress = window.localStorage.getItem('gtnmonkey_progress')
-		progress++
+		progress = parseInt(prevProgress, 10) + 1
 	}
 	window.localStorage.setItem('gtnmonkey_progress', progress)
 	window.localStorage.setItem('gtnmonkey_progress_str', '' + progress + "/" + numberOfFoundIssues)
 	printLog("Stored progress: " + progress)
 }
 
-//Retrieve functions for localStorage
-function getFoundGTNLinksForJiraIssue(jiraIssue) {
-	var storageKey = 'gtnmonkey_result_' + jiraIssue
-	var gtnLinks = localStorage.getItem(storageKey)
+function stopProgress() {
+	window.localStorage.removeItem('gtnmonkey_progress')
+	window.localStorage.removeItem('gtnmonkey_progress_str')
+	printLog("Stopped progress")
+}
 
-	//TODO figure out why "null" is saved to localStorage
-	if (gtnLinks == null || gtnLinks === "null") {
-		return JSON.parse("[]")
-	} else {
-		return JSON.parse(gtnLinks)
-	}
+//Retrieve functions for localStorage
+function getStoredJiraDataForIssue(jiraIssue) {
+	var jiraData = JSON.parse(localStorage.getItem('gtnmonkey_result_' + jiraIssue))
+	jiraData = Object.assign(new JiraData(null, null, []), jiraData)
+
+	return jiraData
 	// return JSON.parse(localStorage.getItem(storageKey) || "[]");
 }
 
@@ -287,15 +349,23 @@ function getNumberOfFoundJiraIssuesFromStorage() {
 	return window.localStorage.getItem('gtnmonkey_number_of_jiraissues')
 }
 
-function getOriginalPageFromStorage() {
+function getOriginPageFromStorage() {
 	return window.localStorage.getItem('gtnmonkey_mainPage')	
 }
 
-function printProgress() {
-	var progress = window.localStorage.getItem('gtnmonkey_progress')
-	var progressStr = window.localStorage.getItem('gtnmonkey_progress_str')
-	printLog("Processing page: " + progress)
-	printLog("Processing page: " + progressStr)
+// function printProgress() {
+// 	var progress = window.localStorage.getItem('gtnmonkey_progress')
+// 	var progressStr = window.localStorage.getItem('gtnmonkey_progress_str')
+// 	printLog("Processing page: " + progress)
+// 	printLog("Processing page: " + progressStr)
+// }
+
+function getOverallProgress() {
+	return window.localStorage.getItem('gtnmonkey_progress_str')
+}
+
+function isInProgress() {
+	return window.localStorage.getItem('gtnmonkey_progress') != null
 }
 
 function getJiraName() {
@@ -307,11 +377,11 @@ function gotoNextPage(issues) {
 }
 
 function gotoOriginPage() {
-	changeLocation(getOriginalPageFromStorage())
+	changeLocation(getOriginPageFromStorage())
 }
 
 function changeLocation(location) {
-	var origin = getOriginalPageFromStorage()
+	var origin = getOriginPageFromStorage()
 	if (location !== origin) {
 		storeProgress()
 	}
@@ -320,7 +390,17 @@ function changeLocation(location) {
 }
 
 function printLog(logMessage) {
-	console.log("GTN monkey: " + logMessage)
+	var originPage = window.location.href.startsWith("https://jira.cloudera.com/issues/?filter=")
+
+	var jiraRef;
+	if (originPage) {
+		jiraRef = "ORIGIN: " + window.location.href.split("issues/?")[1]
+	} else {
+		jiraRef = getJiraName()
+	}
+
+	var logPrefix = `GTN monkey (PAGE: ${jiraRef}, PROGRESS: ${getOverallProgress()}) ` 
+	console.log(logPrefix + logMessage)
 }
 
 function isFunction(functionToCheck) {
@@ -341,16 +421,120 @@ function createButton(title, funcToCall, icon) {
     var href = `javascript:${funcToCall.name}();`
     var anchorClass = "board-header-btn board-header-btn-without-icon board-header-btn-text"
     var anchor = $(`<a class="${anchorClass}" href="${href}" title="${title}">${title}</a>`.trim())
-    printLog("anchor:", anchor)
+    // printLog("anchor:", anchor)
     divider.appendTo($('.board-header'));
     anchor.appendTo($('.board-header'));
 }
 
+//===============================
 //On page ready
 $(document).ready(function() {
 	onDocumentReady()
 });
 
+function showOverlay() {
 
- 
-// loadGtnLinks(issueLinks.slice(0, 1))
+	var overlayDiv = $(`<div class="aui-blanket" tabindex="0" aria-hidden="false"></div>`)
+	overlayDiv.appendTo($('body'))
+
+
+	var title = "GTN MONKEY"
+	progress = getOverallProgress()
+	const markup = `
+	 <div id="gtnmonkey-dialog" class="jira-dialog box-shadow jira-dialog-open popup-width-custom jira-dialog-content-ready" style="width: 810px; margin-left: -406px; margin-top: -383px;">
+	    <h2 title="${title}">${title}</h2>
+	    <h2 title="${progress}">Processing: ${progress}</h2>
+	    <div class="jira-dialog-content">
+	    	<div class="qf-container">
+	    		<div class="qf-unconfigurable-form"></div>
+	    	</div>
+	    </div>
+	 </div>
+	`;
+
+	var dialog = $(markup)
+	dialog.appendTo($('body'))
+
+	showTable()
+}
+
+//TABLE FUNCTIONS
+function showTable() {
+	var numberOfFoundIssues = getNumberOfFoundJiraIssuesFromStorage()
+
+
+	const markup = `
+	<div class="list-view">
+		<div class="aui-group aui-group-split issue-table-info-bar">
+			<div class="aui-item"><span class="results-count-text">
+				<span class="results-count-start">1</span>–
+				<span class="results-count-end">${numberOfFoundIssues}</span>
+				</span>
+			</div>
+		</div>
+
+		<div class="issue-table-container"><div><issuetable-web-component resolved="">
+                <table id="gtnmonkey-results">
+                	<thead>
+                		<tr class="rowHeader">
+                			<th class="colHeaderLink sortable headerrow-issuekey" rel="issuekey:ASC" data-id="issuekey" onclick="window.document.location='/issues/?jql=ORDER%20BY%20%22issuekey%22%20ASC'">
+                				<span title="Sort By Key">Key</span>
+                            </th>
+                            <th class="colHeaderLink sortable headerrow-summary" rel="summary:ASC" data-id="summary" onclick="window.document.location='/issues/?jql=ORDER%20BY%20%22summary%22%20ASC'">
+                                <span title="Sort By Summary">Summary</span>
+                            </th>
+                            <th>
+                                <span title="links">GTN Links</span>
+                            </th>
+                        </tr>
+                    </thead>
+
+                    <tbody id="gtnmonkey-results-tbody" class="ui-sortable">
+                    <tr></tr>
+                    </tbody>
+	`
+	var table = $(markup)
+	table.appendTo($('#gtnmonkey-dialog'))
+
+	var results = findLocalStorageItems("gtnmonkey_result_", false)
+	results.forEach(r => {
+		// printLog("***ROW: " + JSON.stringify(r))
+		// printLog("Deleting localStorage item " + r.key);
+		appendRowToResultTable(r.key, r.val)
+	})
+}
+
+function appendRowToResultTable(issueKey, jiraData) {
+	
+	function createRow(jiraData) {
+		//TODO place N/A if no link found
+		const template = 
+		`
+		<tr>
+			<td class="issuekey">
+				<a class="issue-link" data-issue-key="${jiraData.id}" href="/browse/${jiraData.id}">${jiraData.id}</a>
+			</td>
+			<td class="summary">
+				<p><a class="issue-link" data-issue-key="${jiraData.id}" href="/browse/${jiraData.id}">${jiraData.title}</a></p>
+			</td>
+			<td>
+			${jiraData.links.length > 0 ?
+				`${jiraData.links.map((link, i) => `<p><a href="${link}">${link.split("gtn=")[1]}</a></p>`).join('')}` :
+				"<p>N/A</p>"
+			}
+			</td>
+		</tr>
+		`
+		return template
+	}
+
+	var html = createRow(jiraData);
+	// printLog("***HTML: " + html)
+	$('#gtnmonkey-results-tbody tr').last().after(html);
+}
+
+function addResultsToTable() {
+	var jiraIssue = getJiraName()
+	var jiraData = getStoredJiraDataForIssue(jiraIssue)
+	appendRowToResultTable(jiraIssue, jiraData)
+}
