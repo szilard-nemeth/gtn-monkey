@@ -41,6 +41,8 @@ function findAllLinksFromJiraIssues() {
 }
 
 function onDocumentReady() {
+	bindEventHandlers()
+	setButtonStates()
 	printLog("Executed document.ready() on page: " + window.location.href)
 
 	if (isInProgress()) {
@@ -58,6 +60,35 @@ function onDocumentReady() {
 			console.error("window.location.href != issues[0]. current page: " + window.location.href + " issues[0]: " + issues[0])
 		}
 	}
+}
+
+function bindEventHandlers() {
+	$(document).keyup(function(e) {
+		// if (e.keyCode === 13) $('.save').click(); // enter
+
+		//Hide overlay and dialog on pressing ESC
+		if (e.keyCode === 27) {
+			closeResultsDialog()
+		}
+	});
+}
+
+function setButtonStates() {
+	if (isFinished()) {
+		$("#gtn-monkey-results").attr("disabled", false);
+	} else {
+		$("#gtn-monkey-results").attr("disabled", true);
+	}
+}
+
+function closeResultsDialog() {
+	$('#gtnmonkey-dialog').hide();
+	$('.aui-blanket').hide();
+}
+
+function openResultsDialog() {
+	$('#gtnmonkey-dialog').show();
+	$('.aui-blanket').show();
 }
 
 function navigateToNextPageCallback() {
@@ -407,16 +438,6 @@ myjQuery(document).ready(function() {
 });
 
 function showOverlay() {
-	$(document).keyup(function(e) {
-  		// if (e.keyCode === 13) $('.save').click();     // enter
-
-  		//Hide overlay and dialog on pressing ESC
-  		if (e.keyCode === 27) {
-  			$('#gtnmonkey-dialog').hide();
-  			$('.aui-blanket').hide();
-  		}
-	});
-
 	var overlayDiv = myjQuery(`<div class="aui-blanket" tabindex="0" aria-hidden="false"></div>`)
 	overlayDiv.appendTo(myjQuery('body'))
 
@@ -426,8 +447,19 @@ function showOverlay() {
 	const markup = `
 	 <div id="gtnmonkey-dialog" class="jira-dialog box-shadow jira-dialog-open popup-width-custom jira-dialog-content-ready aui form-body" 
 	 style="width: 900px;margin-left: -406px;margin-top: -383px;overflow: auto; max-height: 617px; overflow: auto">
-	    <h2 title="${title}">${title}</h2>
-	    <h2 title="${progress}">Processing: ${progress}</h2>
+
+		 <div class="jira-dialog-heading" style="height: auto">
+		 	<div class="aui-toolbar2 qf-form-operations" role="toolbar">
+		 		<div class="aui-toolbar2-inner">
+		 			<div class="aui-toolbar2-secondary">
+		 				<button id="qf-field-picker-trigger" class="aui-button" resolved="" onclick="closeResultsDialog()">(X) Close</button>
+		 			</div>
+		 		</div>
+		 	</div>
+		 	<h2 title="${title}">${title}</h2>
+		 	<h2 title="${progress}">Processing: ${progress}</h2>
+		 </div>
+	    
 	    <div class="jira-dialog-content">
 	    	<div class="qf-container">
 	    		<div class="qf-unconfigurable-form"></div>
