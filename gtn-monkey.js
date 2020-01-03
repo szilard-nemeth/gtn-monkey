@@ -89,8 +89,10 @@ function closeResultsOverlay() {
 }
 
 function showResultsOverlay() {
-	$('#gtnmonkey-dialog').show();
-	$('.aui-blanket').show();
+	if ($("#gtnm-show-results").attr("disabled") !== "disabled") {
+		$('#gtnmonkey-dialog').show();
+		$('.aui-blanket').show();
+	}
 }
 
 function navigateToNextPageCallback() {
