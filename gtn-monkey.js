@@ -25,6 +25,7 @@ class JiraData {
 function findAllLinksFromJiraIssues() {
 	//Start up the scraping process
 	var originPage = window.location.href.startsWith("https://jira.cloudera.com/issues/?filter=")
+
 	if (originPage && !isInProgress() && isFinished()) {
 		printLog("We are on origin page, cleaning up storage...")
 		cleanupStorage()
@@ -291,7 +292,9 @@ function storeFoundGTNLinks(jiraIssue, jiraData, newLinks) {
 
 function storeOriginPage() {
 	var origin = window.location.href
+	var filterName = $('.search-title').text()
 	window.localStorage.setItem('gtnmonkey_mainPage', origin)
+	window.localStorage.setItem('gtnmonkey_filterName', filterName)
 	printLog("Stored origin page: " + origin)
 }
 
@@ -364,8 +367,20 @@ function getOriginPageFromStorage() {
 	return window.localStorage.getItem('gtnmonkey_mainPage')	
 }
 
+function getFilterNameFromStorage() {
+	return window.localStorage.getItem('gtnmonkey_filterName')	
+}
+
 function getOverallProgress() {
-	return window.localStorage.getItem('gtnmonkey_progress_str')
+	var overallProgress = window.localStorage.getItem('gtnmonkey_progress_str')
+	if (overallProgress && overallProgress != null) {
+		if (overallProgress === "Finished") {
+			return `Finished processing Jira filter '${getFilterNameFromStorage()}' with ${getNumberOfFoundJiraIssuesFromStorage()} items`
+		} else {
+			return `Processing Jira filter '${getFilterNameFromStorage()}': ${overallProgress}`		
+		}
+	}
+	return "Unknown progress"
 }
 
 function isInProgress() {
@@ -465,7 +480,8 @@ function renderResultsOverlay() {
 
 
 	var title = "GTN MONKEY"
-	progress = getOverallProgress()
+	var progress = getOverallProgress()
+	
 	const markup = `
 	 <div id="gtnmonkey-dialog" class="jira-dialog box-shadow jira-dialog-open popup-width-custom jira-dialog-content-ready aui form-body" 
 	 style="width: 900px;margin-left: -406px;margin-top: -383px;overflow: auto; max-height: 617px; overflow: auto">
@@ -479,7 +495,7 @@ function renderResultsOverlay() {
 		 		</div>
 		 	</div>
 		 	<h2 title="${title}">${title}</h2>
-		 	<h2 title="${progress}">Processing: ${progress}</h2>
+		 	<h2 title="${progress}">${progress}</h2>
 		 </div>
 	    
 	    <div class="jira-dialog-content">
