@@ -504,8 +504,8 @@ function renderResultsOverlay() {
 		 	<div class="aui-toolbar2 qf-form-operations" role="toolbar">
 		 		<div class="aui-toolbar2-inner">
 		 			<div class="aui-toolbar2-secondary">
-		 				<button id="close-overlay-button" class="aui-button" resolved="" onclick="closeResultsOverlay()">(X) Close</button>
 		 				<button id="validate-quanta-links" class="aui-button" resolved="" onclick="checkIfQuantaLinksAreAccessible()">Check Quanta links</button>
+		 				<button id="close-overlay-button" class="aui-button" resolved="" onclick="closeResultsOverlay()">(X) Close</button>
 		 			</div>
 		 		</div>
 		 	</div>
