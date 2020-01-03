@@ -70,25 +70,25 @@ function bindEventHandlers() {
 
 		//Hide overlay and dialog on pressing ESC
 		if (e.keyCode === 27) {
-			closeResultsDialog()
+			closeResultsOverlay()
 		}
 	});
 }
 
 function setButtonStates() {
 	if (isFinished()) {
-		$("#gtn-monkey-results").attr("disabled", false);
+		$("#gtnm-show-results").attr("disabled", false);
 	} else {
-		$("#gtn-monkey-results").attr("disabled", true);
+		$("#gtnm-show-results").attr("disabled", true);
 	}
 }
 
-function closeResultsDialog() {
+function closeResultsOverlay() {
 	$('#gtnmonkey-dialog').hide();
 	$('.aui-blanket').hide();
 }
 
-function openResultsDialog() {
+function showResultsOverlay() {
 	$('#gtnmonkey-dialog').show();
 	$('.aui-blanket').show();
 }
@@ -335,6 +335,9 @@ function stopProgress() {
 	//TODO extract "Finished" into a constant
 	window.localStorage.setItem('gtnmonkey_progress', "Finished")
 	window.localStorage.setItem('gtnmonkey_progress_str', "Finished")
+
+	//https://stackoverflow.com/a/221297/1106893
+	window.localStorage.setItem('gtnmonkey_progress_finished_at', Date.now())
 	printLog("Stopped progress")
 }
 
@@ -372,6 +375,18 @@ function isInProgress() {
 function isFinished() {
 	var progress = window.localStorage.getItem('gtnmonkey_progress')
 	if (progress === "Finished") {
+		return true
+	}
+	return false
+}
+
+function isFinishedJustNow() {
+	if (!isFinished) {
+		return false
+	}
+	var finishedTime = window.localStorage.getItem('gtnmonkey_progress_finished_at')
+	var now = Date.now()
+	if (now - finishedTime <= 10000) {
 		return true
 	}
 	return false
@@ -440,7 +455,7 @@ myjQuery(document).ready(function() {
 	onDocumentReady()
 });
 
-function showOverlay() {
+function renderResultsOverlay() {
 	var overlayDiv = myjQuery(`<div class="aui-blanket" tabindex="0" aria-hidden="false"></div>`)
 	overlayDiv.appendTo(myjQuery('body'))
 
@@ -455,7 +470,7 @@ function showOverlay() {
 		 	<div class="aui-toolbar2 qf-form-operations" role="toolbar">
 		 		<div class="aui-toolbar2-inner">
 		 			<div class="aui-toolbar2-secondary">
-		 				<button id="qf-field-picker-trigger" class="aui-button" resolved="" onclick="closeResultsDialog()">(X) Close</button>
+		 				<button id="qf-field-picker-trigger" class="aui-button" resolved="" onclick="closeResultsOverlay()">(X) Close</button>
 		 			</div>
 		 		</div>
 		 	</div>
@@ -475,6 +490,8 @@ function showOverlay() {
 	dialog.appendTo(myjQuery('body'))
 
 	showTable()
+	$('#gtnmonkey-dialog').hide();
+	$('.aui-blanket').hide();
 }
 
 //TABLE FUNCTIONS
@@ -629,7 +646,8 @@ function checkURL(url) {
 	});
 }
 
-if (isInProgress() || isFinished()) {
+renderResultsOverlay()
+if (isInProgress() || isFinishedJustNow()) {
 	printLog("Showing overlay...")
-	showOverlay()
+	showResultsOverlay()
 }
