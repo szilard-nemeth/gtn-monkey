@@ -66,8 +66,8 @@ function onDocumentReady() {
 }
 
 function bindEventHandlers() {
-	$(document).keyup(function(e) {
-		// if (e.keyCode === 13) $('.save').click(); // enter
+	myjQuery(document).keyup(function(e) {
+		// if (e.keyCode === 13) myjQuery('.save').click(); // enter
 
 		//Hide overlay and dialog on pressing ESC
 		if (e.keyCode === 27) {
@@ -78,21 +78,21 @@ function bindEventHandlers() {
 
 function setButtonStates() {
 	if (isFinished()) {
-		$("#gtnm-show-results").attr("disabled", false);
+		myjQuery("#gtnm-show-results").attr("disabled", false);
 	} else {
-		$("#gtnm-show-results").attr("disabled", true);
+		myjQuery("#gtnm-show-results").attr("disabled", true);
 	}
 }
 
 function closeResultsOverlay() {
-	$('#gtnmonkey-dialog').hide();
-	$('.aui-blanket').hide();
+	myjQuery('#gtnmonkey-dialog').hide();
+	myjQuery('.aui-blanket').hide();
 }
 
 function showResultsOverlay() {
-	if ($("#gtnm-show-results").attr("disabled") !== "disabled") {
-		$('#gtnmonkey-dialog').show();
-		$('.aui-blanket').show();
+	if (myjQuery("#gtnm-show-results").attr("disabled") !== "disabled") {
+		myjQuery('#gtnmonkey-dialog').show();
+		myjQuery('.aui-blanket').show();
 	}
 }
 
@@ -292,7 +292,7 @@ function storeFoundGTNLinks(jiraIssue, jiraData, newLinks) {
 
 function storeOriginPage() {
 	var origin = window.location.href
-	var filterName = $('.search-title').text()
+	var filterName = myjQuery('.search-title').text()
 	window.localStorage.setItem('gtnmonkey_mainPage', origin)
 	window.localStorage.setItem('gtnmonkey_filterName', filterName)
 	printLog("Stored origin page: " + origin)
@@ -510,8 +510,8 @@ function renderResultsOverlay() {
 	dialog.appendTo(myjQuery('body'))
 
 	showTable()
-	$('#gtnmonkey-dialog').hide();
-	$('.aui-blanket').hide();
+	myjQuery('#gtnmonkey-dialog').hide();
+	myjQuery('.aui-blanket').hide();
 }
 
 //TABLE FUNCTIONS
