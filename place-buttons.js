@@ -32,6 +32,7 @@ function createButton(title, funcToCall, imgSrc, imgAlt, style) {
 
 var filterPage = window.location.href.startsWith("https://jira.cloudera.com/issues/?filter=")
 if (filterPage) {
-    createButton("GTN Monkey!", findAllLinksFromJiraIssues, "http://localhost:8080/monkey-icon.png", "monkey-logo", "background-color: lightcoral")
+    createButton("GTN Monkey!", findAllLinksFromJiraIssues, "http://localhost:8080/monkey-icon.png", "monkey-logo", "background-color: lightgreen")
     createButton("GTNM Show results", showResultsOverlay, "http://localhost:8080/monkey-icon.png", "monkey-logo")
+    createButton("GTNM Clear results", cleanupStorage, "http://localhost:8080/monkey-icon.png", "monkey-logo", "background-color: lightcoral")
 }
