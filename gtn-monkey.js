@@ -56,7 +56,8 @@ function onDocumentReady() {
 		if (issues && issues.length > 0 && window.location.href === issues[0]) {
 			parseGTNLinksFromPage(navigateToNextPageCallback)
 		} else if (location == getOriginPageFromStorage() && isInProgress()) {
-			//Show overlay if we got back to the origin page in order to show final results
+			//We got back to the origin page
+			//Let's show final results: showResultsOverlay should be executed as progress is finished
 			stopProgress()
 			checkIfQuantaLinksAreAccessible()
 		} else {
@@ -490,7 +491,8 @@ function renderResultsOverlay() {
 		 	<div class="aui-toolbar2 qf-form-operations" role="toolbar">
 		 		<div class="aui-toolbar2-inner">
 		 			<div class="aui-toolbar2-secondary">
-		 				<button id="qf-field-picker-trigger" class="aui-button" resolved="" onclick="closeResultsOverlay()">(X) Close</button>
+		 				<button id="close-overlay-button" class="aui-button" resolved="" onclick="closeResultsOverlay()">(X) Close</button>
+		 				<button id="validate-quanta-links" class="aui-button" resolved="" onclick="checkIfQuantaLinksAreAccessible()">Check Quanta links</button>
 		 			</div>
 		 		</div>
 		 	</div>
@@ -632,17 +634,17 @@ function checkIfQuantaLinksAreAccessible() {
 
 async function getURL(url = '') {
   const response = await fetch(url, {
-	method: 'GET',
+	method: 'HEAD',
 	// mode: 'cors',
 	mode: 'cors',
 	cache: 'no-cache',
 	credentials: 'same-origin',
 	headers: {
 		'X-Requested-With': 'http://cloudera-build-us-west-1.vpc.cloudera.com',
-	  // 'Content-Type': 'application/json'
-	  // 'Content-Type': 'application/x-www-form-urlencoded',
 	},
   });
+  
+
   return await response 
 }
 
