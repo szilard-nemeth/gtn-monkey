@@ -36,7 +36,6 @@ function findAllLinksFromJiraIssues() {
 	
 	var issues = storeFoundJiraIssues()
 	if (!issues || issues.length == 0) {
-		//TODO show this message as a popup?
 		printLog("NO JIRA ISSUES FOUND IN CURRENT PAGE!")
 		return
 	}
@@ -340,7 +339,6 @@ function storeProgress(state) {
 }
 
 function stopProgress() {
-	//TODO extract "Finished" into a constant
 	window.localStorage.setItem('gtnmonkey_progress', "Finished")
 	window.localStorage.setItem('gtnmonkey_progress_str', "Finished")
 
@@ -645,7 +643,6 @@ function checkIfQuantaLinksAreAccessible() {
 	function handleQuantaFetchResult(url, result) {
 		//result: boolean
 		var gtn = extractGtnFromURL(url)
-		//TODO Save this to Jiradata (localstorage)
 		if (url.indexOf("TEST_LOGS") != -1) {
 			highlightElements("p", "quantalog", gtn, result)	
 		} else if (url.indexOf("DIAG_LOGS") != -1) {
@@ -663,7 +660,6 @@ function checkIfQuantaLinksAreAccessible() {
 				})
 			})
 		}, () => { //errorcallback
-			//TODO show error popup
 			printError("CORS-ANYWHERE SERVER IS NOT AVAILABLE!")
 		})
 }
