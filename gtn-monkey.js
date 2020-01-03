@@ -328,8 +328,10 @@ function storeProgress(state) {
 	} else {
 		progress = parseInt(prevProgress, 10) + 1
 	}
+
+	var jiraIssue = getJiraName()
 	window.localStorage.setItem('gtnmonkey_progress', progress)
-	window.localStorage.setItem('gtnmonkey_progress_str', '' + progress + "/" + numberOfFoundIssues)
+	window.localStorage.setItem('gtnmonkey_progress_str', `${progress} / ${numberOfFoundIssues} (Jira: ${jiraIssue})`)
 	printLog("Stored progress: " + progress)
 }
 
