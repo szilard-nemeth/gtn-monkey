@@ -24,7 +24,7 @@ function findWithAttr(array, attr, value) {
 
 function loadScripts() {
     //https://www.quora.com/How-can-I-import-JQuery-into-my-js-file
-    // "https://code.jquery.com/jquery-3.4.1.min.js";
+    //https://code.jquery.com/jquery-3.4.1.min.js
     loadScript("https://code.jquery.com/jquery-1.7.2.min.js", () => {
 		window.myjQuery = jQuery.noConflict(true);
 
@@ -34,8 +34,9 @@ function loadScripts() {
 		}
 
 		//LOAD SCRIPTS
-		loadScript("http://localhost:8080/gtn-monkey.js")
-		loadScript("http://localhost:8080/place-buttons.js")
+		loadScript("http://localhost:8080/gtn-monkey.js", () => { 
+			loadScript("http://localhost:8080/place-buttons.js")
+		})
 
 		var javascripts = Array.from(document.scripts).filter(script => script.type === "text/javascript" ? true : false)
 		console.log("Index of loader.js in loaded javascripts: " + findWithAttr(javascripts, "src", "loader.js"))
