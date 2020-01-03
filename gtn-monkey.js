@@ -645,6 +645,7 @@ function checkIfQuantaLinksAreAccessible() {
 	function handleQuantaFetchResult(url, result) {
 		//result: boolean
 		var gtn = extractGtnFromURL(url)
+		//TODO Save this to Jiradata (localstorage)
 		if (url.indexOf("TEST_LOGS") != -1) {
 			highlightElements("p", "quantalog", gtn, result)	
 		} else if (url.indexOf("DIAG_LOGS") != -1) {
