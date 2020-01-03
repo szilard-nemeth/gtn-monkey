@@ -2,7 +2,7 @@ function isFunction(functionToCheck) {
 	return functionToCheck && {}.toString.call(functionToCheck) === '[object Function]';
 }
 
-function createButton(title, funcToCall, icon) {
+function createButton(title, funcToCall, imgSrc, imgAlt) {
     if (title === undefined || title == "") {
         throw "Title should be defined!"
     }
@@ -15,12 +15,18 @@ function createButton(title, funcToCall, icon) {
     var href = `javascript:${funcToCall.name}();`
     var anchorClass = "aui-button aui-button-subtle issuenav-share no-icon"
     var anchor = myjQuery(`<a id="${id}" class="${anchorClass}" href="${href}" title="${title}">${title}</a>`.trim())
+
+    if (imgSrc) {
+        var img = myjQuery(`<img src="${imgSrc}" alt="${imgAlt}" style="width:20px;height:20px"> </a>`.trim())
+        img.appendTo(anchor)
+    }
+
     console.log("anchor:", anchor)
     anchor.appendTo($('.saved-search-operations '));
 }
 
 var filterPage = window.location.href.startsWith("https://jira.cloudera.com/issues/?filter=")
 if (filterPage) {
-    createButton("GTN Monkey!", findAllLinksFromJiraIssues)
-    createButton("GTN Monkey results", openResultsDialog)
+    createButton("GTN Monkey!", findAllLinksFromJiraIssues, "http://localhost:8080/monkey-icon.png", "monkey-logo")
+    createButton("GTN Monkey results", openResultsDialog, "http://localhost:8080/monkey-icon.png", "monkey-logo")
 }
