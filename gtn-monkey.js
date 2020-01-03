@@ -433,7 +433,15 @@ function changeLocation(location) {
 	window.location.href = location
 }
 
-function printLog(logMessage) {
+function printLog(message) {
+	consoleMessage("log", message)
+}
+
+function printError(message) {
+	consoleMessage("error", message)
+}
+
+function consoleMessage(type, message) {
 	var originPage = window.location.href.startsWith("https://jira.cloudera.com/issues/?filter=")
 
 	var jiraRef;
@@ -443,8 +451,15 @@ function printLog(logMessage) {
 		jiraRef = getJiraName()
 	}
 
-	var logPrefix = `GTN monkey (PAGE: ${jiraRef}, PROGRESS: ${getOverallProgress()}) ` 
-	console.log(logPrefix + logMessage)
+	var logPrefix = `GTN monkey (PAGE: ${jiraRef}, PROGRESS: ${getOverallProgress()}) `
+
+	if (type === "log") {
+		console.log(logPrefix + message)	
+	} else if (type === "error") {
+		console.error(logPrefix + message)
+	} else {
+		throw "Unrecognized log method type: " + type
+	}
 }
 
 function isFunction(functionToCheck) {
@@ -611,60 +626,93 @@ function addResultsToTable() {
 }
 
 function checkIfQuantaLinksAreAccessible() {
+	function extractGtnFromURL(url) {
+		if (url.indexOf("/s3/quanta/") != -1) {
+			return url.split("/s3/quanta/")[1].split('/')[0]
+		} else {
+			console.error("Unexpected URL, URL should contain '/s3/quanta'. Got URL: " + resonse.url)
+		}
+	}
+
+	function highlightElements(elementType, type, gtn, available) {
+		color = available ? "#76D7C4" : "#BFC9CA"
+
+		$(elementType).filter(function() {
+   			return this.id.match(new RegExp(`${type}-.*-${gtn}`));
+  		}).css("background-color", color);
+	}
+
+	function handleQuantaFetchResult(url, result) {
+		//result: boolean
+		var gtn = extractGtnFromURL(url)
+		if (url.indexOf("TEST_LOGS") != -1) {
+			highlightElements("p", "quantalog", gtn, result)	
+		} else if (url.indexOf("DIAG_LOGS") != -1) {
+			highlightElements("p", "quantabundle", gtn, result)
+		}
+	}
+
 	var issues = findLocalStorageItems("gtnmonkey_result_", false)
-	issues.forEach(issue => {
-		var jiraData = issue.val;
-		jiraData.links.forEach(link => {
-			var gtn = link.split("gtn=")[1]
-			var quantaLogCellKey = `#quantalog-${jiraData.id}-${gtn}`
-			var quantaBundleCellKey = `#quantabundle-${jiraData.id}-${gtn}`
-
-			//TODO read these from jiraData object instead!
-			var quantaLogLink = myjQuery(quantaLogCellKey + ' a').attr('href')
-			var quantaBundleLink = myjQuery(quantaBundleCellKey + ' a').attr('href')
-			checkURL(quantaLogLink)
-			checkURL(quantaBundleLink)
-			
-
-			// myjQuery(quantaLogCellKey).css("background-color", "gray");
-			// myjQuery(quantaBundleCellKey).css("background-color", "yellow");
+	checkURL("http://localhost:8081", () => { //successcallback
+		issues.forEach(issue => {
+			var jiraData = issue.val;
+			jiraData.links.forEach((link, i) => {
+				validateQuantaURL(jiraData.quantaTestLogs[i], handleQuantaFetchResult)
+				validateQuantaURL(jiraData.quantaDiagBundles[i], handleQuantaFetchResult)
+				})
+			})
+		}, () => { //errorcallback
+			//TODO show error popup
+			printError("CORS-ANYWHERE SERVER IS NOT AVAILABLE!")
 		})
-	})
 }
 
 async function getURL(url = '') {
   const response = await fetch(url, {
 	method: 'HEAD',
-	// mode: 'cors',
 	mode: 'cors',
 	cache: 'no-cache',
-	credentials: 'same-origin',
-	headers: {
-		'X-Requested-With': 'http://cloudera-build-us-west-1.vpc.cloudera.com',
-	},
+	credentials: 'same-origin'
   });
-  
-
   return await response 
 }
 
-function checkURL(url) {
-	//https://medium.com/netscape/hacking-it-out-when-cors-wont-let-you-be-great-35f6206cc646
-	//https://github.com/Rob--W/cors-anywhere
-	getURL('https://cors-anywhere.herokuapp.com/' + url).then((response) => {
-    	console.log("***RECEIVED DATA: " + response);
-    	console.log("***RECEIVED url: " + response.url);
-    	console.log("***RECEIVED ok: " + response.ok);
-    	console.log("***RECEIVED status: " + response.status);
+function validateQuantaURL(url, callback) {
+	getURL('http://localhost:8081/' + url).then((response) => {
+    	// printLog("***RECEIVED DATA: " + JSON.stringify(response));
+    	printLog(`Request result:: URL: ${response.url}, response OK: ${response.ok}, response status: ${response.status}`)
+    	//URL example: http://cloudera-build-us-west-1.vpc.cloudera.com/s3/quanta/1681945/QUASAR_ZIP_FOLDER/QUASAR_TEST_LOGS.zip
+    	
+    	if (response.ok && response.status == 200) {
+    		printLog(`Quanta link ${response.url} is valid and reachable.`)
+    	} else if (response.status == 404) {
+    		printLog(`Quanta Link ${response.url}  is expired, got HTTP status ${response.status}!`)
+    	} else {
+    		printLog(`Cannot access Quanta link ${response.url}, got HTTP status: ${response.status}!`)
+    	}
+
+    	if (response.status == 200 || response.status == 404) {
+    		printLog("Calling callback function...")
+    		callback(response.url, response.status == 200 ? true : false)
+    	}
   	}).catch(function (error) {
-    	console.log('Request failed', error);
-	// xhr.setRequestHeader("Origin", 'maximum.blog');
-	// myjQuery.get(url)
-	//     .done(function() { 
-	//         printLog("URL OK")
-	//     }).fail(function() { 
-	//         printLog("URL NOT OK")
-	//     })
+    	printError('Request failed', error);
+	});
+}
+
+function checkURL(url, successCallback, errorCallback) {
+	getURL(url).then((response) => {
+    	printLog(`Request result:: URL: ${response.url}, response OK: ${response.ok}, response status: ${response.status}`)
+    	if (response.ok && response.status == 200) {
+    		printLog(`URL ${response.url} is valid and reachable. Calling callback function...`)
+    		successCallback()
+    	} else {
+    		printLog(`Cannot access URL ${response.url}, got HTTP status: ${response.status}!`)
+    		errorCallback()
+    	}
+  	}).catch(function (error) {
+    	printError('Request failed', error);
+    	errorCallback()
 	});
 }
 
