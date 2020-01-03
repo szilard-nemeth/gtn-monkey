@@ -1,3 +1,5 @@
+console.log("Loaded place-buttons.js")
+
 function isFunction(functionToCheck) {
 	return functionToCheck && {}.toString.call(functionToCheck) === '[object Function]';
 }

@@ -1,3 +1,5 @@
+console.log("Loaded gtn-monkey.js")
+
 class JiraData {
   constructor(id, title, links, quantaTestLogs, quantaDiagBundles) {    
     this.id = id;
@@ -330,6 +332,7 @@ function storeProgress(state) {
 }
 
 function stopProgress() {
+	//TODO extract "Finished" into a constant
 	window.localStorage.setItem('gtnmonkey_progress', "Finished")
 	window.localStorage.setItem('gtnmonkey_progress_str', "Finished")
 	printLog("Stopped progress")
@@ -627,6 +630,6 @@ function checkURL(url) {
 }
 
 if (isInProgress() || isFinished()) {
-	console.log("***SHOWING OVERLAY...")
+	printLog("Showing overlay...")
 	showOverlay()
 }
