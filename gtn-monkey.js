@@ -549,7 +549,7 @@ function showTable() {
 		</div>
 
 		<div class="issue-table-container"><div><issuetable-web-component resolved="">
-                <table id="gtnmonkey-results">
+                <table id="issuetable">
                 	<thead>
                 		<tr class="rowHeader">
                 			<th class="colHeaderLink sortable headerrow-issuekey" rel="issuekey:ASC" data-id="issuekey" onclick="window.document.location='/issues/?jql=ORDER%20BY%20%22issuekey%22%20ASC'">
@@ -593,7 +593,7 @@ function appendRowToResultTable(jiraData) {
 	function createRow(jiraData) {
 		const template = 
 		`
-		<tr>
+		<tr class="issuerow issue-table-draggable">
 			<td class="issuekey">
 				<a class="issue-link" data-issue-key="${jiraData.id}" href="/browse/${jiraData.id}">${jiraData.id}</a>
 			</td>
