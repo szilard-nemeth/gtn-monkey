@@ -584,6 +584,12 @@ function showTable() {
 }
 
 function appendRowToResultTable(jiraData) {
+	function makeCopyIcon(idOfItemToCopy) {
+		//defer copy as table row is not yet created
+		var funcCall = `copyText($('${idOfItemToCopy}').find('a')[0].download)`
+		return `<img onclick="${funcCall}" src="http://localhost:8080/copy-icon.png" alt="copy" style="width:15px;height:15px;cursor: pointer;">`
+	}
+
 	function createRow(jiraData) {
 		const template = 
 		`
@@ -605,6 +611,7 @@ function appendRowToResultTable(jiraData) {
 				`${Array.from(jiraData.links, ([gtn, value]) => 
 					`<p id="quantalog-${jiraData.id}-${gtn}">
 						<a href="${value.quantaTestLog}" download=${value.quantaTestLogDownloadName}>${gtn}</a>
+						${makeCopyIcon(`#quantalog-${jiraData.id}-${gtn}`)}
 					</p>`).join('')}` :
 				"<p>N/A</p>"
 			}
@@ -614,6 +621,7 @@ function appendRowToResultTable(jiraData) {
 				`${Array.from(jiraData.links, ([gtn, value]) => 
 					`<p id="quantabundle-${jiraData.id}-${gtn}">
 						<a href="${value.quantaDiagBundle}" download=${value.quantaDiagBundleDownloadName}>${gtn}</a>
+						${makeCopyIcon(`#quantabundle-${jiraData.id}-${gtn}`)}
 					</p>`).join('')}` :
 				"<p>N/A</p>"
 			}
@@ -636,6 +644,8 @@ function appendRowToResultTable(jiraData) {
 	// 		setupDownloadHandler("quantabundle", jiraData, gtn)
 	// 	})
 	// }
+
+
 }
 
 function downloadHandler(evt) {
@@ -777,6 +787,18 @@ function checkURL(url, successCallback, errorCallback) {
     	printError('Request failed', error);
     	errorCallback()
 	});
+}
+
+function copyText(str) {
+  const el = document.createElement('textarea');
+  el.value = str;
+  el.setAttribute('readonly', '');
+  el.style.position = 'absolute';
+  el.style.left = '-9999px';
+  document.body.appendChild(el);
+  el.select();
+  document.execCommand('copy');
+  document.body.removeChild(el);
 }
 
 renderResultsOverlay()
