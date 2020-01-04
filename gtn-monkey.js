@@ -252,15 +252,11 @@ function parseGTNLinksFromPage(callback) {
 	myjQuery('.' + collapsedCommentsButton).trigger("click")
 	//TODO can't figure out why the call above does not work!!	
 	jQuery('.' + collapsedCommentsButton).trigger("click")
-	
-	//Wait for comments to be loaded
-	//https://gist.github.com/chrisjhoughton/7890303
 	waitForCommentsLoaded([parseAndSaveComments, parseAndSaveLinksFromDescription, callback])
 }
 
 function parseAndSaveComments() {
 	printLog("Comments loaded");
-	//classes: twixi-wrap verbose actionContainer
 	var allLinks = []
 	myjQuery(commentSelector).each(function() {
 		var links = findLinksInHtml(myjQuery(this).html())
@@ -312,7 +308,6 @@ function findLinksInHtml(html) {
 }
 
 function findLocalStorageItems(query, includeQueryInKeys) {
-	//https://gist.github.com/n0m4dz/77f08d3de1b9115e905c
 	var i, results = [];
 	for (i in localStorage) {
 		if (localStorage.hasOwnProperty(i)) {
@@ -425,8 +420,6 @@ function storeProgress(state) {
 function stopProgress() {
 	window.localStorage.setItem('gtnmonkey_progress', progressFinished)
 	window.localStorage.setItem('gtnmonkey_progress_str', progressFinished)
-
-	//https://stackoverflow.com/a/221297/1106893
 	window.localStorage.setItem('gtnmonkey_progress_finished_at', Date.now())
 	printLog("Stopped progress")
 }
@@ -727,41 +720,9 @@ function appendRowToResultTable(jiraData) {
 		console.log($(elem).find('td.' + rowNumberClass).length); 
 		$(elem).find('td.' + rowNumberClass).text(idx + 1);
 	});
-
-	//Add download handler - https://stackoverflow.com/a/33830576/1106893
-	//TODO
-	// if (jiraData.links.size > 0) {
-	// 	Array.from(jiraData.links.keys()).forEach(gtn => {
-	// 		setupDownloadHandler("quantalog", jiraData, gtn)
-	// 		setupDownloadHandler("quantabundle", jiraData, gtn)
-	// 	})
-	// }
-
-
 }
 
-function downloadHandler(evt) {
-    evt.preventDefault();
-    var name = this.download;
-   
-    getQuantaURL(this.href)
-        .then(res => {printLog("Download complete for URL: " + res.url); return res.blob()})
-        .then(blob => {
-            $("<a>").attr({
-                download: name,
-                href: URL.createObjectURL(blob)
-            })[0].click();
-        });
-}
 
-function setupDownloadHandler(prefix, jiraData, gtn) {
-	var id = `#${prefix}-${jiraData.id}-${gtn}`
-	var linkRef = $(id).find("a")
-	if (linkRef.length != 0) {
-		printError("Link was not found with id: " + id)
-	}
-	linkRef.click(downloadHandler);
-} 
 
 function addResultsToTable() {
 	var jiraIssue = getJiraName()
