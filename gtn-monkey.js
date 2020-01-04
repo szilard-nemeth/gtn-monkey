@@ -625,48 +625,38 @@ function appendRowToResultTable(jiraData) {
 	var html = createRow(jiraData);
 	myjQuery('#gtnmonkey-results-tbody tr').last().after(html);
 
-
-	function downloadHandler(evt) {
-	    evt.preventDefault();
-	    var name = this.download;
-	   
-	    // we need a blob so we can create a objectURL and use it on a link element
-	    // jQuery don't support responseType = 'blob' (yet)
-	    // So I use the next version of ajax only avalible in blink & firefox
-	    // it also works fine by using XMLHttpRequest v2 and set the responseType
-	    getQuantaURL(this.href)
-	    // fetch("localhost:8081/" + this.href)
-	        // res is the beginning of a request it only gets the response headers
-	        // here you can use .blob() .text() .json or res.arrayBuffer() depending
-	        // on what you need, if it contains Content-Type: application/json
-	        // then you might want to choose res.json() 
-	        // all this returns a promise
-	        .then(res => res.blob())
-	        .then(blob => {
-	            $("<a>").attr({
-	                download: name,
-	                href: URL.createObjectURL(blob)
-	            })[0].click();
-	        });
-	}
-
-	function setupDownloadHandler(prefix, jiraData, gtn) {
-		var id = `#${prefix}-${jiraData.id}-${gtn}`
-		var linkRef = $(id).find("a")
-		if (linkRef.length != 0) {
-			printError("Link was not found with id: " + id)
-		}
-		linkRef.click(downloadHandler);
-	} 
-
 	//Add download handler - https://stackoverflow.com/a/33830576/1106893
-	if (jiraData.links.size > 0) {
-		Array.from(jiraData.links.keys()).forEach(gtn => {
-			setupDownloadHandler("quantalog", jiraData, gtn)
-			setupDownloadHandler("quantabundle", jiraData, gtn)
-		})
-	}
+	//TODO
+	// if (jiraData.links.size > 0) {
+	// 	Array.from(jiraData.links.keys()).forEach(gtn => {
+	// 		setupDownloadHandler("quantalog", jiraData, gtn)
+	// 		setupDownloadHandler("quantabundle", jiraData, gtn)
+	// 	})
+	// }
 }
+
+function downloadHandler(evt) {
+    evt.preventDefault();
+    var name = this.download;
+   
+    getQuantaURL(this.href)
+        .then(res => {printLog("Download complete for URL: " + res.url); return res.blob()})
+        .then(blob => {
+            $("<a>").attr({
+                download: name,
+                href: URL.createObjectURL(blob)
+            })[0].click();
+        });
+}
+
+function setupDownloadHandler(prefix, jiraData, gtn) {
+	var id = `#${prefix}-${jiraData.id}-${gtn}`
+	var linkRef = $(id).find("a")
+	if (linkRef.length != 0) {
+		printError("Link was not found with id: " + id)
+	}
+	linkRef.click(downloadHandler);
+} 
 
 function addResultsToTable() {
 	var jiraIssue = getJiraName()
