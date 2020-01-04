@@ -479,24 +479,6 @@ function isFunction(functionToCheck) {
 	return functionToCheck && {}.toString.call(functionToCheck) === '[object Function]';
 }
 
-function createButton(title, funcToCall, icon) {
-    var divider = myjQuery('<span class="board-header-btn-divider"></span>')
-
-    if (title === undefined || title == "") {
-    	throw "Title should be defined!"
-    }
-
-    if (funcToCall === undefined || funcToCall == "" || !isFunction(funcToCall)) {
-    	throw "funcToCall should be a valid function!"
-    }
-
-    var href = `javascript:${funcToCall.name}();`
-    var anchorClass = "board-header-btn board-header-btn-without-icon board-header-btn-text"
-    var anchor = myjQuery(`<a class="${anchorClass}" href="${href}" title="${title}">${title}</a>`.trim())
-    divider.appendTo(myjQuery('.board-header'));
-    anchor.appendTo(myjQuery('.board-header'));
-}
-
 //===============================
 //On page ready
 myjQuery(document).ready(function() {
