@@ -552,6 +552,9 @@ function showTable() {
                 <table id="issuetable">
                 	<thead>
                 		<tr class="rowHeader">
+                			<th class="rownumber">
+                				<span title="rownumber">#</span>
+							</td>
                 			<th class="colHeaderLink sortable headerrow-issuekey" rel="issuekey:ASC" data-id="issuekey" onclick="window.document.location='/issues/?jql=ORDER%20BY%20%22issuekey%22%20ASC'">
                 				<span title="Sort By Key">Key</span>
                             </th>
@@ -594,6 +597,8 @@ function appendRowToResultTable(jiraData) {
 		const template = 
 		`
 		<tr class="issuerow issue-table-draggable">
+			<td class="rownumber" id="rownumber-${jiraData.id}">
+			</td>
 			<td class="issuekey">
 				<a class="issue-link" data-issue-key="${jiraData.id}" href="/browse/${jiraData.id}">${jiraData.id}</a>
 			</td>
@@ -635,6 +640,10 @@ function appendRowToResultTable(jiraData) {
 
 	var html = createRow(jiraData);
 	myjQuery('#gtnmonkey-results-tbody tr').last().after(html);
+	myjQuery('#gtnmonkey-results-tbody tr.issuerow').each((idx, elem) => {
+		console.log($(elem).find('td.rownumber').length); 
+		$(elem).find('td.rownumber').text(idx + 1);
+	});
 
 	//Add download handler - https://stackoverflow.com/a/33830576/1106893
 	//TODO
