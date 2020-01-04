@@ -17,6 +17,9 @@ class JiraData {
 
     this.links = links.reduce(function(map, link) {
 		var gtn = link.split("gtn=")[1]
+
+		//If we have anything after GTN number, drop it
+		gtn = gtn.match(/^\d+/gi)
 		
 		if (gtn == undefined || gtn == null) {
 			throw "GTN is not valid for link: " + link
