@@ -666,14 +666,28 @@ function checkIfQuantaLinksAreAccessible() {
 		}
 	}
 
-	var allJiraData = deserializeAllJiraData()
-	checkURL("http://localhost:8081", () => { //successcallback
+	function checkLinks() {
 		allJiraData.forEach(jd => {
 			jd.links.forEach((value, key, map) => {
 				validateQuantaURL(map.get(key).quantaTestLog, handleQuantaFetchResult)
 				validateQuantaURL(map.get(key).quantaDiagBundle, handleQuantaFetchResult)
 				})
 			})
+	}
+
+	var allJiraData = deserializeAllJiraData()
+	checkURL("http://localhost:8081", () => { //successcallback
+
+		//Perform VPN check
+		validateQuantaURL("https://quanta.infra.cloudera.com", () => {
+			//Finally, check links
+			checkLinks()
+		}, () => {
+			printError("QUANTA IS NOT AVAILABLE! PLEASE MAKE SURE YOU ARE CONNECTED TO VPN!")
+			//TODO Only run this if bypass-VPN check checkbox is ticked 
+			//checkLinks()
+		})
+		
 		}, () => { //errorcallback
 			printError("CORS-ANYWHERE SERVER IS NOT AVAILABLE!")
 		}
@@ -690,7 +704,7 @@ async function getURL(url = '') {
   return await response 
 }
 
-function validateQuantaURL(url, callback) {
+function validateQuantaURL(url, successCallback, errorCallback) {
 	getURL('http://localhost:8081/' + url).then((response) => {
     	// printLog("***RECEIVED DATA: " + JSON.stringify(response));
     	printLog(`Request result:: URL: ${response.url}, response OK: ${response.ok}, response status: ${response.status}`)
@@ -706,10 +720,11 @@ function validateQuantaURL(url, callback) {
 
     	if (response.status == 200 || response.status == 404) {
     		printLog("Calling callback function...")
-    		callback(response.url, response.status == 200 ? true : false)
+    		successCallback(response.url, response.status == 200 ? true : false)
     	}
   	}).catch(function (error) {
     	printError('Request failed', error);
+    	errorCallback(response.url, response.status)
 	});
 }
 
