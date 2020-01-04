@@ -6,6 +6,11 @@ const quasarDiagBundleFilename = "QUASAR_DIAG_LOGS.zip"
 const testLogsTemplate = quasarTemplate + quasarTestLogsFilename
 const diagBundleTemplate = quasarTemplate + quasarDiagBundleFilename
 
+//buttons
+const clearResultsButtonSelector = "#gtnm-clear-results"
+const showResultsButtonSelector = "#gtnm-show-results"
+
+
 class JiraData {
   constructor(id, title, links) {    
     this.id = id;
@@ -93,11 +98,16 @@ function bindEventHandlers() {
 
 function setButtonStates() {
 	if (isFinished()) {
-		myjQuery("#gtnm-show-results").attr("disabled", false);
+		enableButton(showResultsButtonSelector, true)
 	} else {
-		myjQuery("#gtnm-show-results").attr("disabled", true);
+		enableButton(showResultsButtonSelector, false)
 	}
 }
+
+function enableButton(buttonSelector, enabled) {
+	myjQuery(buttonSelector).attr("disabled", !enabled);
+}
+
 
 function closeResultsOverlay() {
 	myjQuery('#gtnmonkey-dialog').hide();
@@ -105,7 +115,8 @@ function closeResultsOverlay() {
 }
 
 function showResultsOverlay() {
-	if (myjQuery("#gtnm-show-results").attr("disabled") !== "disabled") {
+	//Only show if "Show results" button is enabled
+	if (myjQuery(showResultsButtonSelector).attr("disabled") !== "disabled") {
 		myjQuery('#gtnmonkey-dialog').show();
 		myjQuery('.aui-blanket').show();
 	}
@@ -275,6 +286,8 @@ function cleanupStorage() {
 	window.localStorage.removeItem("gtnmonkey_number_of_jiraissues")
 	window.localStorage.removeItem('gtnmonkey_progress')
 	window.localStorage.removeItem('gtnmonkey_progress_str')
+
+	enableButton(showResultsButtonSelector, false)
 }
 
 function storeFoundGTNLinksForJiraIssue(newLinks) {
@@ -408,6 +421,14 @@ function getOverallProgress() {
 		}
 	}
 	return "Unknown progress"
+}
+
+function hasAnyData() {
+	var progress = window.localStorage.getItem('gtnmonkey_progress')
+	if (progress == undefined || progress == null) {
+		return false
+	}
+	return true
 }
 
 function isInProgress() {
