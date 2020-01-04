@@ -327,7 +327,13 @@ function storeFoundJiraIssues(jiraIssues) {
 
 function storeProgress(state) {
 	if (state != undefined && state != null) {
-		window.localStorage.setItem('gtnmonkey_progress', state)	
+		window.localStorage.setItem('gtnmonkey_progress', state)
+		window.localStorage.setItem('gtnmonkey_progress', state)
+	}
+
+	if (state == "Started") {
+		//Don't increase progress counter if just started
+		return
 	}
 
 	var numberOfFoundIssues = getNumberOfFoundJiraIssuesFromStorage()
