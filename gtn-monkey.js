@@ -1,24 +1,32 @@
 console.log("Loaded gtn-monkey.js")
 
+const quasarTemplate = "http://cloudera-build-us-west-1.vpc.cloudera.com/s3/quanta/$GTN$/QUASAR_ZIP_FOLDER/"
+const testLogsTemplate = quasarTemplate + "QUASAR_TEST_LOGS.zip"
+const diagBundleTemplate = quasarTemplate + "QUASAR_DIAG_LOGS.zip"
+
 class JiraData {
-  constructor(id, title, links, quantaTestLogs, quantaDiagBundles) {    
+  constructor(id, title, links) {    
     this.id = id;
     this.title = title;
 
     if (links == null || links == undefined) {
-    	this.links = []
+    	links = []
     }
-    this.links = links;
 
-    if (quantaTestLogs == null || quantaTestLogs == undefined) {
-    	this.quantaTestLogs = []
-    }
-    this.quantaTestLogs = quantaTestLogs;
-
-    if (quantaDiagBundles == null || quantaDiagBundles == undefined) {
-    	this.quantaDiagBundles = []
-    }
-    this.quantaDiagBundles = quantaDiagBundles;
+    this.links = links.reduce(function(map, link) {
+		var gtn = link.split("gtn=")[1]
+		
+		if (gtn == undefined || gtn == null) {
+			throw "GTN is not valid for link: " + link
+		}
+    	
+    	map[gtn] = { 
+    		quantaLink: link,
+    		quantaTestLog: testLogsTemplate.replace("$GTN$", gtn),
+    		quantaDiagBundle: diagBundleTemplate.replace("$GTN$", gtn),
+    	}
+    	return map;
+	}, new Map());
   }
 }
 
@@ -230,13 +238,12 @@ function findLocalStorageItems(query, includeQueryInKeys) {
 	for (i in localStorage) {
 		if (localStorage.hasOwnProperty(i)) {
 		  if (i.match(query) || (!query && typeof i === 'string')) {
-		    value = JSON.parse(localStorage.getItem(i));
-
 		    var key = i
 		    if (!includeQueryInKeys && key.indexOf(query) == 0) {
 		    	key = key.substr(query.length)
 		    } 
-		    results.push({key:key, val:value});
+		    
+		    results.push({key:key, val:localStorage.getItem(i)});
 		  }
 		}
 	}
@@ -273,18 +280,12 @@ function storeFoundGTNLinks(jiraIssue, jiraData, newLinks) {
 	if (jiraData.links > 0) {
 		printLog("Found data for '" + jiraIssue + "', appending data to it")
 	}
-
-	jiraData.links = jiraData.links.concat(newLinks)
 	printLog("Found new GTN links: " + JSON.stringify(newLinks))
+	var linksArray = Array.from(jiraData.links.values()).map(val => val.quantaLink).concat(newLinks)
+	printLog("Updated links: " + JSON.stringify(linksArray))
 
 	var jiraTitle = myjQuery('#summary-val').text()
-	var prefix = "http://cloudera-build-us-west-1.vpc.cloudera.com/s3/quanta/$GTN$/QUASAR_ZIP_FOLDER/"
-	var testLogsTemplate = prefix + "QUASAR_TEST_LOGS.zip"
-	var diagBundleTemplate = prefix + "QUASAR_DIAG_LOGS.zip"
-	var quantaTestLogs = jiraData.links.map(link => testLogsTemplate.replace("$GTN$", link.split("gtn=")[1]))
-	var quantaDiagBundles = jiraData.links.map(link => diagBundleTemplate.replace("$GTN$", link.split("gtn=")[1]))
-
-	var data = new JiraData(jiraIssue, jiraTitle, jiraData.links, quantaTestLogs, quantaDiagBundles)
+	var data = new JiraData(jiraIssue, jiraTitle, linksArray)
 	var dataJson = JSON.stringify(data)
 	printLog("Storing JiraData: " + dataJson)
 	window.localStorage.setItem('gtnmonkey_result_' + jiraIssue, dataJson);
@@ -349,9 +350,23 @@ function stopProgress() {
 
 //Retrieve functions for localStorage
 function getStoredJiraDataForIssue(jiraIssue) {
-	var jiraData = JSON.parse(localStorage.getItem('gtnmonkey_result_' + jiraIssue))
-	jiraData = Object.assign(new JiraData(null, null, [], [], []), jiraData)
+	return deserializeJiraData(localStorage.getItem('gtnmonkey_result_' + jiraIssue))
+}
+
+function deserializeJiraData(rawStr) {
+	var jiraData = JSON.parse(rawStr)
+	jiraData = Object.assign(new JiraData(null, null, []), jiraData)
+	if (!(jiraData.links instanceof Map)) {
+		jiraData.links = new Map(Object.entries(jiraData.links));
+		//jiraData.links = JSON.parse(JSON.stringify(jiraData.links)).reduce((m, [key, val]) => m.set(key, val) , new Map());
+	}
+	printLog("Deserialized JiraData: " + JSON.stringify(jiraData))
 	return jiraData
+}
+
+function deserializeAllJiraData() {
+	var issues = findLocalStorageItems("gtnmonkey_result_", false)
+	return issues.map(issue => deserializeJiraData(issue.val))
 }
 
 function getFoundJiraIssuesFromStorage() {
@@ -573,13 +588,14 @@ function showTable() {
 	var table = myjQuery(markup)
 	table.appendTo(myjQuery('#gtnmonkey-dialog'))
 
-	var results = findLocalStorageItems("gtnmonkey_result_", false)
-	results.forEach(r => {
-		appendRowToResultTable(r.key, r.val)
+	var allJiraData = deserializeAllJiraData()
+	allJiraData.forEach(jd => {
+		appendRowToResultTable(jd)
 	})
 }
 
-function appendRowToResultTable(issueKey, jiraData) {
+function appendRowToResultTable(jiraData) {
+	printLog("Appending row: " + jiraData)
 	function createRow(jiraData) {
 		const template = 
 		`
@@ -591,20 +607,20 @@ function appendRowToResultTable(issueKey, jiraData) {
 				<p><a class="issue-link" data-issue-key="${jiraData.id}" href="/browse/${jiraData.id}">${jiraData.title}</a></p>
 			</td>
 			<td>
-			${jiraData.links.length > 0 ?
-				`${jiraData.links.map((link, i) => `<p><a href="${link}">${link.split("gtn=")[1]}</a></p>`).join('')}` :
+			${jiraData.links.size > 0 ?
+				`${Array.from(jiraData.links, ([gtn, value]) => `<p><a href="${value.quantaLink}">${gtn}</a></p>`).join('')}` :
 				"<p>N/A</p>"
 			}
 			</td>
 			<td>
-			${jiraData.quantaTestLogs.length > 0 ?
-				`${jiraData.quantaTestLogs.map((link, i) => `<p id="quantalog-${jiraData.id}-${jiraData.links[i].split("gtn=")[1]}"><a href="${link}">${jiraData.links[i].split("gtn=")[1]}</a></p>`).join('')}` :
+			${jiraData.links.size > 0 ?
+				`${Array.from(jiraData.links, ([gtn, value]) => `<p id="quantalog-${jiraData.id}-${gtn}"><a href="${value.quantaTestLog}">${gtn}</a></p>`).join('')}` :
 				"<p>N/A</p>"
 			}
 			</td>
 			<td>
-			${jiraData.quantaDiagBundles.length > 0 ?
-				`${jiraData.quantaDiagBundles.map((link, i) => `<p id="quantabundle-${jiraData.id}-${jiraData.links[i].split("gtn=")[1]}"><a href="${link}">${jiraData.links[i].split("gtn=")[1]}</a></p>`).join('')}` :
+			${jiraData.links.size > 0 ?
+				`${Array.from(jiraData.links, ([gtn, value]) => `<p id="quantabundle-${jiraData.id}-${gtn}"><a href="${value.quantaDiagBundle}">${gtn}</a></p>`).join('')}` :
 				"<p>N/A</p>"
 			}
 			</td>
@@ -620,7 +636,7 @@ function appendRowToResultTable(issueKey, jiraData) {
 function addResultsToTable() {
 	var jiraIssue = getJiraName()
 	var jiraData = getStoredJiraDataForIssue(jiraIssue)
-	appendRowToResultTable(jiraIssue, jiraData)
+	appendRowToResultTable(jiraData)
 }
 
 function checkIfQuantaLinksAreAccessible() {
@@ -650,18 +666,18 @@ function checkIfQuantaLinksAreAccessible() {
 		}
 	}
 
-	var issues = findLocalStorageItems("gtnmonkey_result_", false)
+	var allJiraData = deserializeAllJiraData()
 	checkURL("http://localhost:8081", () => { //successcallback
-		issues.forEach(issue => {
-			var jiraData = issue.val;
-			jiraData.links.forEach((link, i) => {
-				validateQuantaURL(jiraData.quantaTestLogs[i], handleQuantaFetchResult)
-				validateQuantaURL(jiraData.quantaDiagBundles[i], handleQuantaFetchResult)
+		allJiraData.forEach(jd => {
+			jd.links.forEach((value, key, map) => {
+				validateQuantaURL(map.get(key).quantaTestLog, handleQuantaFetchResult)
+				validateQuantaURL(map.get(key).quantaDiagBundle, handleQuantaFetchResult)
 				})
 			})
 		}, () => { //errorcallback
 			printError("CORS-ANYWHERE SERVER IS NOT AVAILABLE!")
-		})
+		}
+	)
 }
 
 async function getURL(url = '') {
