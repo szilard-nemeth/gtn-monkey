@@ -40,7 +40,7 @@ const progressFinished = "Finished"
 const STORAGEKEY_PROGRESS = 'gtnmonkey_progress'
 const STORAGEKEY_PROGRESS_STR = 'gtnmonkey_progress_str'
 const STORAGEKEY_PROGRESS_FINISHED_AT = 'gtnmonkey_progress_finished_at'
-const STORAGEKEY_RESULT = 'gtnmonkey_result_'
+const STORAGEKEY_RESULT = 'gtnmonkey_result'
 const STORAGEKEY_ORIGIN_PAGE = 'gtnmonkey_originPage'
 const STORAGEKEY_JIRAISSUES = 'gtnmonkey_jiraissues'
 const STORAGEKEY_NUMBER_OF_JIRA_ISSUES = 'gtnmonkey_number_of_jiraissues'
@@ -112,17 +112,50 @@ class JiraData {
 			throw "GTN is not valid for link: " + link
 		}
     	
-    	map[gtn] = { 
+    	map.set(gtn, { 
     		quantaLink: link,
     		quantaTestLog: testLogsTemplate.replace(gtnPlaceholder, gtn),
     		quantaDiagBundle: diagBundleTemplate.replace(gtnPlaceholder, gtn),
     		quantaTestLogDownloadName: `${this.id}-${gtn}-${quantaTestLogsFilename}`,
     		quantaDiagBundleDownloadName: `${this.id}-${gtn}-${quantaDiagBundleFilename}`
-    	}
+    	});
     	return map;
 	}.bind(this), new Map());
+	console.log("LINKZ: ")
   }
 }
+
+//TODO move this to separate module
+//https://2ality.com/2015/08/es6-map-json.html
+//https://stackoverflow.com/questions/50153172/how-to-serialize-a-map-in-javascript
+function strMapToObj(strMap) {
+  let obj = Object.create(null);
+  for (let [k,v] of strMap) {
+    // We don’t escape the key '__proto__'
+    // which can cause problems on older engines
+    obj[k] = v;
+  }
+  return obj;
+}
+
+function objToStrMap(obj) {
+	var entries = Object.entries(obj)
+	if (entries.length > 0) {
+		return new Map(entries)
+	} else {
+		return new Map()
+	}
+  // return new Map(Object.entries(obj));
+  //Alternatively:
+  // let strMap = new Map();
+  // for (let k of Object.keys(obj)) {
+  //   strMap.set(k, obj[k]);
+  // }
+  // return strMap;
+}
+
+//Collection of in-memory JiraData objects
+var JIRADATA_LIST = []
 
 //ENTRYPOINT: Start up the scraping process
 function findAllLinksFromJiraIssues() {
@@ -262,6 +295,7 @@ function parseGTNLinksFromPage(callback) {
 	myjQuery('.' + collapsedCommentsButton).trigger("click")
 	//TODO can't figure out why the call above does not work!!	
 	jQuery('.' + collapsedCommentsButton).trigger("click")
+
 	waitForCommentsLoaded([parseAndSaveComments, parseAndSaveLinksFromDescription, callback])
 }
 
@@ -317,39 +351,22 @@ function findLinksInHtml(html) {
 	return links
 }
 
-function findLocalStorageItems(query, includeQueryInKeys) {
-	var i, results = [];
-	for (i in localStorage) {
-		if (localStorage.hasOwnProperty(i)) {
-		  if (i.match(query) || (!query && typeof i === 'string')) {
-		    var key = i
-		    if (!includeQueryInKeys && key.indexOf(query) == 0) {
-		    	key = key.substr(query.length)
-		    } 
-		    
-		    results.push({key:key, val:localStorage.getItem(i)});
-		  }
-		}
-	}
-	return results;
-}
-
 
 //Store functions for localStorage
 function cleanupStorage() {
-	var results = findLocalStorageItems(STORAGEKEY_RESULT, true)
-	results.forEach(r => {
-		printLog("Deleting localStorage item " + r.key);
-		window.localStorage.removeItem(r.key);
-	})
-
-	window.localStorage.removeItem(STORAGEKEY_ORIGIN_PAGE)
-	window.localStorage.removeItem(STORAGEKEY_JIRAISSUES)
-	window.localStorage.removeItem(STORAGEKEY_NUMBER_OF_JIRA_ISSUES)
-	window.localStorage.removeItem(STORAGEKEY_PROGRESS)
-	window.localStorage.removeItem(STORAGEKEY_PROGRESS_STR)
+	deleteLocalStorageItem(STORAGEKEY_RESULT)
+	deleteLocalStorageItem(STORAGEKEY_ORIGIN_PAGE)
+	deleteLocalStorageItem(STORAGEKEY_JIRAISSUES)
+	deleteLocalStorageItem(STORAGEKEY_NUMBER_OF_JIRA_ISSUES)
+	deleteLocalStorageItem(STORAGEKEY_PROGRESS)
+	deleteLocalStorageItem(STORAGEKEY_PROGRESS_STR)
 
 	enableButton(showResultsButtonSelector, false)
+}
+
+function deleteLocalStorageItem(key) {
+	printLog("Deleting localStorage item " + key);
+	window.localStorage.removeItem(key)
 }
 
 function storeFoundGTNLinksForJiraIssue(newLinks) {
@@ -367,10 +384,28 @@ function storeFoundGTNLinks(jiraIssue, jiraData, newLinks) {
 	printLog("Updated links: " + JSON.stringify(linksArray))
 
 	var jiraTitle = myjQuery(jiraSummarySelector).text()
+	
+	//create JiraData
 	var data = new JiraData(jiraIssue, jiraTitle, linksArray)
-	var dataJson = JSON.stringify(data)
-	printLog("Storing JiraData: " + dataJson)
-	window.localStorage.setItem(STORAGEKEY_RESULT + jiraIssue, dataJson);
+	printLog("Storing modified JiraData: " + JSON.stringify(data))
+
+	//update JiraData array and store it to localStorage
+	var allJiraData = deserializeAllJiraData()
+	var foundJiraData = getJiraData(allJiraData, jiraIssue, false)
+	if (foundJiraData != null) {
+		printLog(`Replacing found jiraData: ${JSON.stringify(foundJiraData)} with new JiraData: ${JSON.stringify(data)}`)
+		// var idx = allJiraData.indexOf(foundJiraData)
+		// allJiraData[idx] = data
+		foundJiraData.links = data.links
+	} else {
+		allJiraData.push(data)
+	}
+	
+	//Convert Map before calling JSON.stringify as Maps are not serializable
+	allJiraData.forEach(jd => jd.links = strMapToObj(jd.links))
+	var allJiraDataJson = JSON.stringify(allJiraData)
+	printLog("Storing modified array of JiraData: " + allJiraDataJson)
+	window.localStorage.setItem(STORAGEKEY_RESULT, allJiraDataJson);
 }
 
 function storeOriginPage() {
@@ -436,23 +471,41 @@ function stopProgress() {
 
 //Retrieve functions for localStorage
 function getStoredJiraDataForIssue(jiraIssue) {
-	return deserializeJiraData(localStorage.getItem(STORAGEKEY_RESULT + jiraIssue))
+	var allJiraData = deserializeAllJiraData()
+	return getJiraData(allJiraData, jiraIssue)
 }
 
-function deserializeJiraData(rawStr) {
-	var jiraData = JSON.parse(rawStr)
-	jiraData = Object.assign(new JiraData(null, null, []), jiraData)
-	if (!(jiraData.links instanceof Map)) {
-		jiraData.links = new Map(Object.entries(jiraData.links));
-		//jiraData.links = JSON.parse(JSON.stringify(jiraData.links)).reduce((m, [key, val]) => m.set(key, val) , new Map());
+//TODO can be removed later
+function getJiraData(allJiraData, jiraIssueId, create = true) {
+	var found = allJiraData.find(jd => jd.id === jiraIssueId);
+	if (found != undefined && found != null) {
+		return found
 	}
-	printLog("Deserialized JiraData: " + JSON.stringify(jiraData))
-	return jiraData
+	if (create) {
+		return new JiraData(null, null, [])	
+	} else {
+		return null
+	}
+	
 }
 
 function deserializeAllJiraData() {
-	var issues = findLocalStorageItems(STORAGEKEY_RESULT, false)
-	return issues.map(issue => deserializeJiraData(issue.val))
+	var rawStr = window.localStorage.getItem(STORAGEKEY_RESULT)
+	var allJiraDataObj = JSON.parse(rawStr)
+	if (allJiraDataObj == undefined || allJiraDataObj == null) {
+		allJiraDataObj = []
+	}
+
+	return allJiraDataObj.map(jiraData => {
+		jiraData = Object.assign(new JiraData(null, null, []), jiraData)
+		if (!(jiraData.links instanceof Map)) {
+			// jiraData.links = new Map(Object.entries(jiraData.links));
+			jiraData.links = objToStrMap(jiraData.links)
+			//jiraData.links = JSON.parse(JSON.stringify(jiraData.links)).reduce((m, [key, val]) => m.set(key, val) , new Map());
+		}
+		printLog("Deserialized JiraData: " + JSON.stringify(jiraData))
+		return jiraData
+	})
 }
 
 function getFoundJiraIssuesFromStorage() {

@@ -28,7 +28,7 @@ function createButton(title, funcToCall, imgSrc, imgAlt, style) {
     }
 
     console.log("anchor:", anchor)
-    anchor.appendTo($('.saved-search-operations '));
+    anchor.appendTo(myjQuery('.saved-search-operations '));
 }
 
 var filterPage = window.location.href.startsWith("https://jira.cloudera.com/issues/?filter=")
