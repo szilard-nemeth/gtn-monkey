@@ -17,7 +17,7 @@ const diagBundleTemplate = quantaTemplate + quantaDiagBundleFilename
 
 const quantaUrlSplitAlong = "/s3/quanta/"
 const urlFragmentTestLogs = "TEST_LOGS"
-const urlFragmentDiagBundle = "DIAG_BUNDLE"
+const urlFragmentDiagBundle = "DIAG_LOGS"
 
 
 //JQuery constants
