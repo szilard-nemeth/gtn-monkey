@@ -722,10 +722,12 @@ function appendRowToResultTable(jiraData) {
 		return template
 	}
 
+	//Append row to table
 	printLog("Appending row: " + jiraData)
-
 	var html = createRow(jiraData);
 	myjQuery('#' + gtnMonkeyResultsTableBody + ' tr').last().after(html);
+
+	//Add row numbers
 	myjQuery('#' + gtnMonkeyResultsTableBody + ' tr.' + gtnMonkeyResultsIssueRow).each((idx, elem) => {
 		console.log($(elem).find('td.' + rowNumberClass).length); 
 		$(elem).find('td.' + rowNumberClass).text(idx + 1);
@@ -850,15 +852,15 @@ function checkURL(url, successCallback, errorCallback) {
 }
 
 function copyText(str) {
-  const el = document.createElement('textarea');
-  el.value = str;
-  el.setAttribute('readonly', '');
-  el.style.position = 'absolute';
-  el.style.left = '-9999px';
-  document.body.appendChild(el);
-  el.select();
-  document.execCommand('copy');
-  document.body.removeChild(el);
+	const el = document.createElement('textarea');
+	el.value = str;
+	el.setAttribute('readonly', '');
+	el.style.position = 'absolute';
+	el.style.left = '-9999px';
+	document.body.appendChild(el);
+	el.select();
+	document.execCommand('copy');
+	document.body.removeChild(el);
 }
 
 renderResultsOverlay()
