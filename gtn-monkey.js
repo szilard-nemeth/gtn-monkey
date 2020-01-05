@@ -36,6 +36,16 @@ const gtnQueryParam = "gtn="
 const progressStarted = "Started"
 const progressFinished = "Finished"
 
+//storage keys
+const STORAGEKEY_PROGRESS = 'gtnmonkey_progress'
+const STORAGEKEY_PROGRESS_STR = 'gtnmonkey_progress_str'
+const STORAGEKEY_PROGRESS_FINISHED_AT = 'gtnmonkey_progress_finished_at'
+const STORAGEKEY_RESULT = 'gtnmonkey_result_'
+const STORAGEKEY_ORIGIN_PAGE = 'gtnmonkey_originPage'
+const STORAGEKEY_JIRAISSUES = 'gtnmonkey_jiraissues'
+const STORAGEKEY_NUMBER_OF_JIRA_ISSUES = 'gtnmonkey_number_of_jiraissues'
+const STORAGEKEY_JIRA_FILTER_NAME = 'gtnmonkey_filterName'
+
 //elements
 const quantaTestLogParagraphIdPrefix = "quantatestlog"
 const quantaBundleParagraphIdPrefix = "quantabundle"
@@ -327,17 +337,17 @@ function findLocalStorageItems(query, includeQueryInKeys) {
 
 //Store functions for localStorage
 function cleanupStorage() {
-	var results = findLocalStorageItems("gtnmonkey_result_", true)
+	var results = findLocalStorageItems(STORAGEKEY_RESULT, true)
 	results.forEach(r => {
 		printLog("Deleting localStorage item " + r.key);
 		window.localStorage.removeItem(r.key);
 	})
 
-	window.localStorage.removeItem("gtnmonkey_mainPage")
-	window.localStorage.removeItem("gtnmonkey_jiraissues")
-	window.localStorage.removeItem("gtnmonkey_number_of_jiraissues")
-	window.localStorage.removeItem('gtnmonkey_progress')
-	window.localStorage.removeItem('gtnmonkey_progress_str')
+	window.localStorage.removeItem(STORAGEKEY_ORIGIN_PAGE)
+	window.localStorage.removeItem(STORAGEKEY_JIRAISSUES)
+	window.localStorage.removeItem(STORAGEKEY_NUMBER_OF_JIRA_ISSUES)
+	window.localStorage.removeItem(STORAGEKEY_PROGRESS)
+	window.localStorage.removeItem(STORAGEKEY_PROGRESS_STR)
 
 	enableButton(showResultsButtonSelector, false)
 }
@@ -360,14 +370,14 @@ function storeFoundGTNLinks(jiraIssue, jiraData, newLinks) {
 	var data = new JiraData(jiraIssue, jiraTitle, linksArray)
 	var dataJson = JSON.stringify(data)
 	printLog("Storing JiraData: " + dataJson)
-	window.localStorage.setItem('gtnmonkey_result_' + jiraIssue, dataJson);
+	window.localStorage.setItem(STORAGEKEY_RESULT + jiraIssue, dataJson);
 }
 
 function storeOriginPage() {
 	var origin = window.location.href
 	var filterName = myjQuery(jiraFilterNameSelector).text()
-	window.localStorage.setItem('gtnmonkey_mainPage', origin)
-	window.localStorage.setItem('gtnmonkey_filterName', filterName)
+	window.localStorage.setItem(STORAGEKEY_ORIGIN_PAGE, origin)
+	window.localStorage.setItem(STORAGEKEY_JIRA_FILTER_NAME, filterName)
 	printLog("Stored origin page: " + origin)
 }
 
@@ -380,20 +390,20 @@ function storeFoundJiraIssues(jiraIssues) {
 		printLog("Found jira issues on origin (filter) page: " + issueLinks.toString())
 
 		//Only store number of jira issues if this is the initial run
-		window.localStorage.setItem('gtnmonkey_number_of_jiraissues', issueLinks.length)
+		window.localStorage.setItem(STORAGEKEY_NUMBER_OF_JIRA_ISSUES, issueLinks.length)
 	} else {
 		printLog("Storing jira issues: " + jiraIssues.toString())
 		issueLinks = jiraIssues
 	}
-	window.localStorage.setItem('gtnmonkey_jiraissues', JSON.stringify(issueLinks))
+	window.localStorage.setItem(STORAGEKEY_JIRAISSUES, JSON.stringify(issueLinks))
 
 	return issueLinks
 }
 
 function storeProgress(state) {
 	if (state != undefined && state != null) {
-		window.localStorage.setItem('gtnmonkey_progress', state)
-		window.localStorage.setItem('gtnmonkey_progress', state)
+		window.localStorage.setItem(STORAGEKEY_PROGRESS, state)
+		window.localStorage.setItem(STORAGEKEY_PROGRESS, state)
 	}
 
 	if (state == progressStarted) {
@@ -402,7 +412,7 @@ function storeProgress(state) {
 	}
 
 	var numberOfFoundIssues = getNumberOfFoundJiraIssuesFromStorage()
-	var prevProgress = window.localStorage.getItem('gtnmonkey_progress')
+	var prevProgress = window.localStorage.getItem(STORAGEKEY_PROGRESS)
 
 	var progress
 	if (prevProgress == null || prevProgress === progressStarted) {
@@ -412,21 +422,21 @@ function storeProgress(state) {
 	}
 
 	var jiraIssue = getJiraName()
-	window.localStorage.setItem('gtnmonkey_progress', progress)
-	window.localStorage.setItem('gtnmonkey_progress_str', `${progress} / ${numberOfFoundIssues} (Jira: ${jiraIssue})`)
+	window.localStorage.setItem(STORAGEKEY_PROGRESS, progress)
+	window.localStorage.setItem(STORAGEKEY_PROGRESS_STR, `${progress} / ${numberOfFoundIssues} (Jira: ${jiraIssue})`)
 	printLog("Stored progress: " + progress)
 }
 
 function stopProgress() {
-	window.localStorage.setItem('gtnmonkey_progress', progressFinished)
-	window.localStorage.setItem('gtnmonkey_progress_str', progressFinished)
-	window.localStorage.setItem('gtnmonkey_progress_finished_at', Date.now())
+	window.localStorage.setItem(STORAGEKEY_PROGRESS, progressFinished)
+	window.localStorage.setItem(STORAGEKEY_PROGRESS_STR, progressFinished)
+	window.localStorage.setItem(STORAGEKEY_PROGRESS_FINISHED_AT, Date.now())
 	printLog("Stopped progress")
 }
 
 //Retrieve functions for localStorage
 function getStoredJiraDataForIssue(jiraIssue) {
-	return deserializeJiraData(localStorage.getItem('gtnmonkey_result_' + jiraIssue))
+	return deserializeJiraData(localStorage.getItem(STORAGEKEY_RESULT + jiraIssue))
 }
 
 function deserializeJiraData(rawStr) {
@@ -441,28 +451,28 @@ function deserializeJiraData(rawStr) {
 }
 
 function deserializeAllJiraData() {
-	var issues = findLocalStorageItems("gtnmonkey_result_", false)
+	var issues = findLocalStorageItems(STORAGEKEY_RESULT, false)
 	return issues.map(issue => deserializeJiraData(issue.val))
 }
 
 function getFoundJiraIssuesFromStorage() {
-	return JSON.parse(localStorage.getItem("gtnmonkey_jiraissues") || "[]");
+	return JSON.parse(localStorage.getItem(STORAGEKEY_JIRAISSUES) || "[]");
 }
 
 function getNumberOfFoundJiraIssuesFromStorage() {
-	return window.localStorage.getItem('gtnmonkey_number_of_jiraissues')
+	return window.localStorage.getItem(STORAGEKEY_NUMBER_OF_JIRA_ISSUES)
 }
 
 function getOriginPageFromStorage() {
-	return window.localStorage.getItem('gtnmonkey_mainPage')	
+	return window.localStorage.getItem(STORAGEKEY_ORIGIN_PAGE)	
 }
 
 function getFilterNameFromStorage() {
-	return window.localStorage.getItem('gtnmonkey_filterName')	
+	return window.localStorage.getItem(STORAGEKEY_JIRA_FILTER_NAME)	
 }
 
 function getOverallProgress() {
-	var overallProgress = window.localStorage.getItem('gtnmonkey_progress_str')
+	var overallProgress = window.localStorage.getItem(STORAGEKEY_PROGRESS_STR)
 	if (overallProgress && overallProgress != null) {
 		if (overallProgress === progressFinished) {
 			return `Finished processing Jira filter '${getFilterNameFromStorage()}' with ${getNumberOfFoundJiraIssuesFromStorage()} items`
@@ -474,7 +484,7 @@ function getOverallProgress() {
 }
 
 function hasAnyData() {
-	var progress = window.localStorage.getItem('gtnmonkey_progress')
+	var progress = window.localStorage.getItem(STORAGEKEY_PROGRESS)
 	if (progress == undefined || progress == null) {
 		return false
 	}
@@ -482,7 +492,7 @@ function hasAnyData() {
 }
 
 function isInProgress() {
-	var progress = window.localStorage.getItem('gtnmonkey_progress')
+	var progress = window.localStorage.getItem(STORAGEKEY_PROGRESS)
 	if (progress == null || progress === progressFinished) {
 		return false
 	}
@@ -490,7 +500,7 @@ function isInProgress() {
 }
 
 function isFinished() {
-	var progress = window.localStorage.getItem('gtnmonkey_progress')
+	var progress = window.localStorage.getItem(STORAGEKEY_PROGRESS)
 	if (progress === progressFinished) {
 		return true
 	}
@@ -501,7 +511,7 @@ function isFinishedJustNow() {
 	if (!isFinished) {
 		return false
 	}
-	var finishedTime = window.localStorage.getItem('gtnmonkey_progress_finished_at')
+	var finishedTime = window.localStorage.getItem(STORAGEKEY_PROGRESS_FINISHED_AT)
 	var now = Date.now()
 	if (now - finishedTime <= 10000) {
 		return true
