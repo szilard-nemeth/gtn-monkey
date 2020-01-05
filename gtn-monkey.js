@@ -67,7 +67,7 @@ const colorGrey = "#BFC9CA"
 //Jira-related / Jira-defined stuff: buttons, dialogs, elements
 const JIRA_SERVER_URL = "https://jira.cloudera.com"
 const JIRA_ISSUES_URL_FRAGMENT = "issues/?"
-const JIRA_FILTERPAGE_URL_FRAGMENT "issues/?filter="
+const JIRA_FILTERPAGE_URL_FRAGMENT = "issues/?filter="
 
 const overlayClass = "aui-blanket"
 
@@ -672,51 +672,57 @@ function showTable() {
 }
 
 function appendRowToResultTable(jiraData) {
-	
+	function makeLinkOfJiraId(jiraData) {
+		return `<a class="issue-link" data-issue-key="${jiraData.id}" href="/browse/${jiraData.id}">${jiraData.id}</a>`
+	}
+
+	function makeLinkOfJiraTitle(jiraData) {
+		return `<a class="issue-link" data-issue-key="${jiraData.id}" href="/browse/${jiraData.id}">${jiraData.title}</a>`
+	}
+
+	function makeQuantaLinkParagraphs(jiraData) {
+		if (jiraData.links.size > 0) {
+			return Array.from(jiraData.links, ([gtn, value]) => `<p><a href="${value.quantaLink}">${gtn}</a></p>`).join('')
+		}
+		return "<p>N/A</p>"
+	}
+
+	function makeQuantaResourceParagraphs(jiraData, idPrefix, valueProp, downloadProp) {
+		if (jiraData.links.size > 0) {
+			return Array.from(jiraData.links, ([gtn, value]) => 
+				`<p id="${idPrefix}-${jiraData.id}-${gtn}">
+					<a href="${value[valueProp]}" download=${value[downloadProp]}>${gtn}</a>
+						${makeCopyIcon(`#${idPrefix}-${jiraData.id}-${gtn}`)}
+					</p>`).join('')
+		} else {
+			return "<p>N/A</p>"
+		}
+	}
+
+	function makeQuantaTestLogParagraphs(jiraData) {
+		return makeQuantaResourceParagraphs(jiraData, quantaTestLogParagraphIdPrefix, "quantaTestLog", "quantaTestLogDownloadName")
+	}
+
+	function makeQuantaDiagBundleParagraphs(jiraData) {
+		return makeQuantaResourceParagraphs(jiraData, quantaBundleParagraphIdPrefix, "quantaDiagBundle", "quantaDiagBundleDownloadName")	
+	}
+
 	function makeCopyIcon(idOfItemToCopy) {
 		//defer copy as table row is not yet created
 		var funcCall = `copyText($('${idOfItemToCopy}').find('a')[0].download)`
 		return `<img onclick="${funcCall}" src="${SERVER_URL}/copy-icon.png" alt="copy" style="width:15px;height:15px;cursor: pointer;">`
 	}
-	//TODO refactor ternary quanta logs / quanta diag logs template string generator into function
+
 	function createRow(jiraData) {
 		const template = 
 		`
 		<tr class="${gtnMonkeyResultsIssueRow} issue-table-draggable">
-			<td class="${rowNumberClass}" id="${rowNumberClass}-${jiraData.id}">
-			</td>
-			<td class="issuekey">
-				<a class="issue-link" data-issue-key="${jiraData.id}" href="/browse/${jiraData.id}">${jiraData.id}</a>
-			</td>
-			<td class="summary">
-				<p><a class="issue-link" data-issue-key="${jiraData.id}" href="/browse/${jiraData.id}">${jiraData.title}</a></p>
-			</td>
-			<td>
-			${jiraData.links.size > 0 ?
-				`${Array.from(jiraData.links, ([gtn, value]) => `<p><a href="${value.quantaLink}">${gtn}</a></p>`).join('')}` :
-				"<p>N/A</p>"
-			}
-			</td>
-			<td>
-			${jiraData.links.size > 0 ?
-				`${Array.from(jiraData.links, ([gtn, value]) => 
-					`<p id="${quantaTestLogParagraphIdPrefix}-${jiraData.id}-${gtn}">
-						<a href="${value.quantaTestLog}" download=${value.quantaTestLogDownloadName}>${gtn}</a>
-						${makeCopyIcon(`#${quantaTestLogParagraphIdPrefix}-${jiraData.id}-${gtn}`)}
-					</p>`).join('')}` :
-				"<p>N/A</p>"
-			}
-			</td>
-			<td>
-			${jiraData.links.size > 0 ?
-				`${Array.from(jiraData.links, ([gtn, value]) => 
-					`<p id="${quantaBundleParagraphIdPrefix}-${jiraData.id}-${gtn}">
-						<a href="${value.quantaDiagBundle}" download=${value.quantaDiagBundleDownloadName}>${gtn}</a>
-						${makeCopyIcon(`#${quantaBundleParagraphIdPrefix}-${jiraData.id}-${gtn}`)}
-					</p>`).join('')}` :
-				"<p>N/A</p>"
-			}
-			</td>
+			<td class="${rowNumberClass}" id="${rowNumberClass}-${jiraData.id}"></td>
+			<td class="issuekey">${makeLinkOfJiraId(jiraData)}</td>
+			<td class="summary">${makeLinkOfJiraTitle(jiraData)}</td>
+			<td>${makeQuantaLinkParagraphs(jiraData)}</td>
+			<td>${makeQuantaTestLogParagraphs(jiraData)}</td>
+			<td>${makeQuantaDiagBundleParagraphs(jiraData)}</td>
 		</tr>
 		`
 		return template
