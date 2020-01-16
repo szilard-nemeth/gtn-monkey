@@ -1,5 +1,20 @@
 console.log("Loaded loader.js")
 
+const SERVER_URL = "http://localhost:8080"
+const CORS_ANYWHERE_SERVER_URL = "http://localhost:8081"
+
+function loadModule(scriptName, onloadCallback) {
+	var s = document.createElement('script')
+	s.type = "module"
+	s.src = `${CORS_ANYWHERE_SERVER_URL}/${SERVER_URL}/${scriptName}`
+
+	if (onloadCallback) {
+		s.onload = onloadCallback
+	}
+
+	document.getElementsByTagName("head")[0].insertAdjacentElement('afterbegin', s)
+}
+
 function loadScript(src, onloadCallback) {
 	var script = document.createElement("script");
 	script.type = "text/javascript"
@@ -34,8 +49,8 @@ function loadScripts() {
 		}
 
 		//LOAD SCRIPTS
-		loadScript("http://localhost:8080/gtn-monkey.js", () => { 
-			loadScript("http://localhost:8080/place-buttons.js")
+		loadModule("gtn-monkey.mjs", () => { 
+			loadModule("place-buttons.mjs")
 		})
 
 		var javascripts = Array.from(document.scripts).filter(script => script.type === "text/javascript" ? true : false)
@@ -52,4 +67,3 @@ function loadScripts() {
 }
 
 loadScripts()
-

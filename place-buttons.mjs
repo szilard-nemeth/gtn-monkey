@@ -1,4 +1,7 @@
 console.log("Loaded place-buttons.js")
+
+import * as GtnMonkey from './gtn-monkey.mjs';
+
 const server_url = "http://localhost:8080"
 
 function isFunction(functionToCheck) {
@@ -33,7 +36,7 @@ function createButton(title, funcToCall, imgSrc, imgAlt, style) {
 
 var filterPage = window.location.href.startsWith("https://jira.cloudera.com/issues/?filter=")
 if (filterPage) {
-    createButton("GTN Monkey!", findAllLinksFromJiraIssues, `${server_url}/monkey-icon.png`, "monkey-logo", "background-color: lightgreen")
-    createButton("GTNM Show results", showResultsOverlay, `${server_url}/monkey-icon.png`, "monkey-logo")
-    createButton("GTNM Clear results", cleanupStorage, `${server_url}/monkey-icon.png`, "monkey-logo", "background-color: lightcoral")
+    createButton("GTN Monkey!", GtnMonkey.findAllLinksFromJiraIssues, `${server_url}/monkey-icon.png`, "monkey-logo", "background-color: lightgreen")
+    createButton("GTNM Show results", GtnMonkey.showResultsOverlay, `${server_url}/monkey-icon.png`, "monkey-logo")
+    createButton("GTNM Clear results", GtnMonkey.cleanupStorage, `${server_url}/monkey-icon.png`, "monkey-logo", "background-color: lightcoral")
 }

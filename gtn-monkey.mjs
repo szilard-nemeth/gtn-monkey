@@ -1,5 +1,7 @@
 console.log("Loaded gtn-monkey.js")
 
+import * as MapUtils from './maputils.mjs';
+
 //STRING CONSTANTS
 //==========================================
 
@@ -26,8 +28,8 @@ const attrDisabled = "disabled"
 
 //GTN Monkey constants
 //==========================================
-const SERVER_URL = "http://localhost:8080"
-const CORS_ANYWHERE_SERVER_URL = "http://localhost:8081"
+// const SERVER_URL = "http://localhost:8080"
+// const CORS_ANYWHERE_SERVER_URL = "http://localhost:8081"
 
 const pageTitle = "GTN MONKEY"
 const gtnQueryParam = "gtn="
@@ -125,40 +127,12 @@ class JiraData {
   }
 }
 
-//TODO move this to separate module
-//https://2ality.com/2015/08/es6-map-json.html
-//https://stackoverflow.com/questions/50153172/how-to-serialize-a-map-in-javascript
-function strMapToObj(strMap) {
-  let obj = Object.create(null);
-  for (let [k,v] of strMap) {
-    // We don’t escape the key '__proto__'
-    // which can cause problems on older engines
-    obj[k] = v;
-  }
-  return obj;
-}
-
-function objToStrMap(obj) {
-	var entries = Object.entries(obj)
-	if (entries.length > 0) {
-		return new Map(entries)
-	} else {
-		return new Map()
-	}
-  // return new Map(Object.entries(obj));
-  //Alternatively:
-  // let strMap = new Map();
-  // for (let k of Object.keys(obj)) {
-  //   strMap.set(k, obj[k]);
-  // }
-  // return strMap;
-}
 
 //Collection of in-memory JiraData objects
 var JIRADATA_LIST = []
 
 //ENTRYPOINT: Start up the scraping process
-function findAllLinksFromJiraIssues() {
+export function findAllLinksFromJiraIssues() {
 	var originPage = window.location.href.startsWith(`${JIRA_SERVER_URL}/${JIRA_FILTERPAGE_URL_FRAGMENT}`)
 
 	if (originPage && !isInProgress() && isFinished()) {
@@ -227,7 +201,7 @@ function closeResultsOverlay() {
 	myjQuery('.' + overlayClass).hide();
 }
 
-function showResultsOverlay() {
+export function showResultsOverlay() {
 	//Only show if "Show results" button is enabled
 	if (myjQuery(showResultsButtonSelector).attr(attrDisabled) !== attrDisabled) {
 		myjQuery('#' + gtnMonkeyDialogId).show();
@@ -353,7 +327,7 @@ function findLinksInHtml(html) {
 
 
 //Store functions for localStorage
-function cleanupStorage() {
+export function cleanupStorage() {
 	deleteLocalStorageItem(STORAGEKEY_RESULT)
 	deleteLocalStorageItem(STORAGEKEY_ORIGIN_PAGE)
 	deleteLocalStorageItem(STORAGEKEY_JIRAISSUES)
@@ -402,7 +376,7 @@ function storeFoundGTNLinks(jiraIssue, jiraData, newLinks) {
 	}
 	
 	//Convert Map before calling JSON.stringify as Maps are not serializable
-	allJiraData.forEach(jd => jd.links = strMapToObj(jd.links))
+	allJiraData.forEach(jd => jd.links = MapUtils.strMapToObj(jd.links))
 	var allJiraDataJson = JSON.stringify(allJiraData)
 	printLog("Storing modified array of JiraData: " + allJiraDataJson)
 	window.localStorage.setItem(STORAGEKEY_RESULT, allJiraDataJson);
@@ -500,7 +474,7 @@ function deserializeAllJiraData() {
 		jiraData = Object.assign(new JiraData(null, null, []), jiraData)
 		if (!(jiraData.links instanceof Map)) {
 			// jiraData.links = new Map(Object.entries(jiraData.links));
-			jiraData.links = objToStrMap(jiraData.links)
+			jiraData.links = MapUtils.objToStrMap(jiraData.links)
 			//jiraData.links = JSON.parse(JSON.stringify(jiraData.links)).reduce((m, [key, val]) => m.set(key, val) , new Map());
 		}
 		printLog("Deserialized JiraData: " + JSON.stringify(jiraData))
