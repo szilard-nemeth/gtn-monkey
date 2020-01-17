@@ -1,6 +1,10 @@
 console.log("Loaded gtn-monkey.js")
 
 import * as MapUtils from './maputils.mjs';
+import {JiraUrlUtils} from './jira.mjs';
+import {ScrapeSession} from './scrape-session.mjs';
+import {Storage} from './storage.mjs';
+import {printLog, printError} from './logging.mjs';
 
 //STRING CONSTANTS
 //==========================================
@@ -34,20 +38,6 @@ const attrDisabled = "disabled"
 const pageTitle = "GTN MONKEY"
 const gtnQueryParam = "gtn="
 
-//progress
-const progressStarted = "Started"
-const progressFinished = "Finished"
-
-//storage keys
-const STORAGEKEY_PROGRESS = 'gtnmonkey_progress'
-const STORAGEKEY_PROGRESS_STR = 'gtnmonkey_progress_str'
-const STORAGEKEY_PROGRESS_FINISHED_AT = 'gtnmonkey_progress_finished_at'
-const STORAGEKEY_RESULT = 'gtnmonkey_result'
-const STORAGEKEY_ORIGIN_PAGE = 'gtnmonkey_originPage'
-const STORAGEKEY_JIRAISSUES = 'gtnmonkey_jiraissues'
-const STORAGEKEY_NUMBER_OF_JIRA_ISSUES = 'gtnmonkey_number_of_jiraissues'
-const STORAGEKEY_JIRA_FILTER_NAME = 'gtnmonkey_filterName'
-
 //elements
 const quantaTestLogParagraphIdPrefix = "quantatestlog"
 const quantaBundleParagraphIdPrefix = "quantabundle"
@@ -64,13 +54,6 @@ const rowNumberClass = "rownumber"
 const colorLightGreen = "#76D7C4"
 const colorGrey = "#BFC9CA"
 
-
-//==========================================
-//Jira-related / Jira-defined stuff: buttons, dialogs, elements
-const JIRA_SERVER_URL = "https://jira.cloudera.com"
-const JIRA_ISSUES_URL_FRAGMENT = "issues/?"
-const JIRA_FILTERPAGE_URL_FRAGMENT = "issues/?filter="
-
 const overlayClass = "aui-blanket"
 
 //These are 2 states for the "Show more comments" button: 
@@ -84,11 +67,10 @@ const overlayClass = "aui-blanket"
 const showMoreCommentsButton = "show-more-comments"
 const collapsedCommentsButton = "collapsed-comments"
 
-
+//TODO Move these to JiraConstants
 const descriptionSelector = '#descriptionmodule p'
 const commentSelector = '.twixi-wrap > .action-body'
 const jiraSummarySelector = '#summary-val'
-const jiraFilterNameSelector = '.search-title'
 const jiraIssuesOnFilterPageSelector = '.results-panel .issuekey a'
 
 
@@ -133,22 +115,20 @@ var JIRADATA_LIST = []
 
 //ENTRYPOINT: Start up the scraping process
 export function findAllLinksFromJiraIssues() {
-	var originPage = window.location.href.startsWith(`${JIRA_SERVER_URL}/${JIRA_FILTERPAGE_URL_FRAGMENT}`)
-
-	if (originPage && !isInProgress() && isFinished()) {
+	if (JiraUrlUtils.isOriginPage() && !ScrapeSession.isInProgress() && ScrapeSession.isFinished()) {
 		printLog("We are on origin page, cleaning up storage...")
 		cleanupStorage()
 	}
 
-	storeProgress(progressStarted)
-	storeOriginPage()
+	ScrapeSession.start()
+	ScrapeSession.storeOriginPage()
 	
 	var issues = storeFoundJiraIssues()
 	if (!issues || issues.length == 0) {
 		printLog("NO JIRA ISSUES FOUND IN CURRENT PAGE!")
 		return
 	}
-	gotoNextPage(getFoundJiraIssuesFromStorage())
+	gotoNextPage(Storage.getFoundJiraIssues())
 }
 
 function onDocumentReady() {
@@ -156,17 +136,17 @@ function onDocumentReady() {
 	setButtonStates()
 	printLog("Executed document.ready() on page: " + window.location.href)
 
-	if (isInProgress()) {
-		var issues = getFoundJiraIssuesFromStorage()
+	if (ScrapeSession.isInProgress()) {
+		var issues = Storage.getFoundJiraIssues()
 		printLog("Retrieved jira issues from storage: " + issues)
 
 		//double-check URL
 		if (issues && issues.length > 0 && window.location.href === issues[0]) {
 			parseGTNLinksFromPage(navigateToNextPageCallback)
-		} else if (location == getOriginPageFromStorage() && isInProgress()) {
+		} else if (location == Storage.getOriginPage() && ScrapeSession.isInProgress()) {
 			//We got back to the origin page
 			//Let's show final results: showResultsOverlay should be executed as progress is finished
-			stopProgress()
+			ScrapeSession.stopProgress()
 			checkIfQuantaLinksAreAccessible()
 		} else {
 			console.error("window.location.href != issues[0]. current page: " + window.location.href + " issues[0]: " + issues[0])
@@ -184,7 +164,8 @@ function bindEventHandlers() {
 }
 
 function setButtonStates() {
-	if (isFinished()) {
+	//TODO this should only depend on if any results are stored in localstorage, not ScrapeSession
+	if (ScrapeSession.isFinished()) {
 		enableButton(showResultsButtonSelector, true)
 	} else {
 		enableButton(showResultsButtonSelector, false)
@@ -211,7 +192,7 @@ export function showResultsOverlay() {
 
 function navigateToNextPageCallback() {
 	addResultsToTable()
-	var issues = getFoundJiraIssuesFromStorage()
+	var issues = Storage.getFoundJiraIssues()
 	var parsedPage = issues.shift()
 	printLog("Parsed GTN links from current page")
 	//store modified jira issues array to localStorage so next execution of onDocumentReady() picks up next page
@@ -221,7 +202,7 @@ function navigateToNextPageCallback() {
 	if (issues.length > 0) {
 		gotoNextPage(issues)
 	} else {
-		printLog("No more pages to process. Changing location to origin jira URL: " + getOriginPageFromStorage())
+		printLog("No more pages to process. Changing location to origin jira URL: " + Storage.getOriginPage())
 		gotoOriginPage()
 	}
 }
@@ -328,23 +309,12 @@ function findLinksInHtml(html) {
 
 //Store functions for localStorage
 export function cleanupStorage() {
-	deleteLocalStorageItem(STORAGEKEY_RESULT)
-	deleteLocalStorageItem(STORAGEKEY_ORIGIN_PAGE)
-	deleteLocalStorageItem(STORAGEKEY_JIRAISSUES)
-	deleteLocalStorageItem(STORAGEKEY_NUMBER_OF_JIRA_ISSUES)
-	deleteLocalStorageItem(STORAGEKEY_PROGRESS)
-	deleteLocalStorageItem(STORAGEKEY_PROGRESS_STR)
-
+	Storage.cleanup()
 	enableButton(showResultsButtonSelector, false)
 }
 
-function deleteLocalStorageItem(key) {
-	printLog("Deleting localStorage item " + key);
-	window.localStorage.removeItem(key)
-}
-
 function storeFoundGTNLinksForJiraIssue(newLinks) {
-	var jiraIssue = getJiraName()
+	var jiraIssue = JiraUrlUtils.getJiraName()
 	var jiraData = getStoredJiraDataForIssue(jiraIssue)
 	storeFoundGTNLinks(jiraIssue, jiraData, newLinks)
 }
@@ -377,70 +347,26 @@ function storeFoundGTNLinks(jiraIssue, jiraData, newLinks) {
 	
 	//Convert Map before calling JSON.stringify as Maps are not serializable
 	allJiraData.forEach(jd => jd.links = MapUtils.strMapToObj(jd.links))
-	var allJiraDataJson = JSON.stringify(allJiraData)
-	printLog("Storing modified array of JiraData: " + allJiraDataJson)
-	window.localStorage.setItem(STORAGEKEY_RESULT, allJiraDataJson);
-}
-
-function storeOriginPage() {
-	var origin = window.location.href
-	var filterName = myjQuery(jiraFilterNameSelector).text()
-	window.localStorage.setItem(STORAGEKEY_ORIGIN_PAGE, origin)
-	window.localStorage.setItem(STORAGEKEY_JIRA_FILTER_NAME, filterName)
-	printLog("Stored origin page: " + origin)
+	Storage.storeJiraDataObjs(allJiraData)
 }
 
 function storeFoundJiraIssues(jiraIssues) {
 	var issueLinks
 	if (jiraIssues === undefined) {
 		issueLinks = myjQuery(jiraIssuesOnFilterPageSelector).map(function() {
-      		return JIRA_SERVER_URL + myjQuery(this).attr('href');
+			return JiraUrlUtils.getServerPrefixedUrl(myjQuery(this).attr('href'))
 		}).toArray();
 		printLog("Found jira issues on origin (filter) page: " + issueLinks.toString())
 
 		//Only store number of jira issues if this is the initial run
-		window.localStorage.setItem(STORAGEKEY_NUMBER_OF_JIRA_ISSUES, issueLinks.length)
+		Storage.storeNumberOfJiraIssuesFound(issueLinks.length)
 	} else {
 		printLog("Storing jira issues: " + jiraIssues.toString())
 		issueLinks = jiraIssues
 	}
-	window.localStorage.setItem(STORAGEKEY_JIRAISSUES, JSON.stringify(issueLinks))
+	Storage.storeJiraIssuesFound(issueLinks)
 
 	return issueLinks
-}
-
-function storeProgress(state) {
-	if (state != undefined && state != null) {
-		window.localStorage.setItem(STORAGEKEY_PROGRESS, state)
-		window.localStorage.setItem(STORAGEKEY_PROGRESS, state)
-	}
-
-	if (state == progressStarted) {
-		//Don't increase progress counter if just started
-		return
-	}
-
-	var numberOfFoundIssues = getNumberOfFoundJiraIssuesFromStorage()
-	var prevProgress = window.localStorage.getItem(STORAGEKEY_PROGRESS)
-
-	var progress
-	if (prevProgress == null || prevProgress === progressStarted) {
-		progress = 1
-	} else {
-		progress = parseInt(prevProgress, 10) + 1
-	}
-
-	var jiraIssue = getJiraName()
-	window.localStorage.setItem(STORAGEKEY_PROGRESS, progress)
-	window.localStorage.setItem(STORAGEKEY_PROGRESS_STR, `${progress} / ${numberOfFoundIssues} (Jira: ${jiraIssue})`)
-	printLog("Stored progress: " + progress)
-}
-
-function stopProgress() {
-	window.localStorage.setItem(STORAGEKEY_PROGRESS, progressFinished)
-	window.localStorage.setItem(STORAGEKEY_PROGRESS_STR, progressFinished)
-	window.localStorage.setItem(STORAGEKEY_PROGRESS_FINISHED_AT, Date.now())
-	printLog("Stopped progress")
 }
 
 //Retrieve functions for localStorage
@@ -464,12 +390,7 @@ function getJiraData(allJiraData, jiraIssueId, create = true) {
 }
 
 function deserializeAllJiraData() {
-	var rawStr = window.localStorage.getItem(STORAGEKEY_RESULT)
-	var allJiraDataObj = JSON.parse(rawStr)
-	if (allJiraDataObj == undefined || allJiraDataObj == null) {
-		allJiraDataObj = []
-	}
-
+	var allJiraDataObj = Storage.getJiraDataObjs();
 	return allJiraDataObj.map(jiraData => {
 		jiraData = Object.assign(new JiraData(null, null, []), jiraData)
 		if (!(jiraData.links instanceof Map)) {
@@ -482,118 +403,21 @@ function deserializeAllJiraData() {
 	})
 }
 
-function getFoundJiraIssuesFromStorage() {
-	return JSON.parse(localStorage.getItem(STORAGEKEY_JIRAISSUES) || "[]");
-}
-
-function getNumberOfFoundJiraIssuesFromStorage() {
-	return window.localStorage.getItem(STORAGEKEY_NUMBER_OF_JIRA_ISSUES)
-}
-
-function getOriginPageFromStorage() {
-	return window.localStorage.getItem(STORAGEKEY_ORIGIN_PAGE)	
-}
-
-function getFilterNameFromStorage() {
-	return window.localStorage.getItem(STORAGEKEY_JIRA_FILTER_NAME)	
-}
-
-function getOverallProgress() {
-	var overallProgress = window.localStorage.getItem(STORAGEKEY_PROGRESS_STR)
-	if (overallProgress && overallProgress != null) {
-		if (overallProgress === progressFinished) {
-			return `Finished processing Jira filter '${getFilterNameFromStorage()}' with ${getNumberOfFoundJiraIssuesFromStorage()} items`
-		} else {
-			return `Processing Jira filter '${getFilterNameFromStorage()}': ${overallProgress}`		
-		}
-	}
-	return "Unknown progress"
-}
-
-function hasAnyData() {
-	var progress = window.localStorage.getItem(STORAGEKEY_PROGRESS)
-	if (progress == undefined || progress == null) {
-		return false
-	}
-	return true
-}
-
-function isInProgress() {
-	var progress = window.localStorage.getItem(STORAGEKEY_PROGRESS)
-	if (progress == null || progress === progressFinished) {
-		return false
-	}
-	return true
-}
-
-function isFinished() {
-	var progress = window.localStorage.getItem(STORAGEKEY_PROGRESS)
-	if (progress === progressFinished) {
-		return true
-	}
-	return false
-}
-
-function isFinishedJustNow() {
-	if (!isFinished) {
-		return false
-	}
-	var finishedTime = window.localStorage.getItem(STORAGEKEY_PROGRESS_FINISHED_AT)
-	var now = Date.now()
-	if (now - finishedTime <= 10000) {
-		return true
-	}
-	return false
-}
-
-function getJiraName() {
-	return window.location.href.split("browse/")[1]
-}
-
 function gotoNextPage(issues) {
 	changeLocation(issues[0])
 }
 
 function gotoOriginPage() {
-	changeLocation(getOriginPageFromStorage())
+	changeLocation(Storage.getOriginPage())
 }
 
 function changeLocation(location) {
-	var origin = getOriginPageFromStorage()
+	var origin = Storage.getOriginPage()
 	if (location !== origin) {
-		storeProgress()
+		ScrapeSession.storeProgress()
 	}
 	printLog("Changing location to: " + location)
 	window.location.href = location
-}
-
-function printLog(message) {
-	consoleMessage("log", message)
-}
-
-function printError(message) {
-	consoleMessage("error", message)
-}
-
-function consoleMessage(type, message) {
-	var originPage = window.location.href.startsWith(`${JIRA_SERVER_URL}/${JIRA_FILTERPAGE_URL_FRAGMENT}`)
-
-	var jiraRef;
-	if (originPage) {
-		jiraRef = "ORIGIN: " + window.location.href.split(JIRA_ISSUES_URL_FRAGMENT)[1]
-	} else {
-		jiraRef = getJiraName()
-	}
-
-	var logPrefix = `GTN monkey (PAGE: ${jiraRef}, PROGRESS: ${getOverallProgress()}) `
-
-	if (type === "log") {
-		console.log(logPrefix + message)	
-	} else if (type === "error") {
-		console.error(logPrefix + message)
-	} else {
-		throw "Unrecognized log method type: " + type
-	}
 }
 
 function isFunction(functionToCheck) {
@@ -607,11 +431,17 @@ myjQuery(document).ready(function() {
 });
 
 function renderResultsOverlay() {
+	//TODO Results overlay should not depend on ScrapeSession.
+	//If we have anything in storage, should show the results overlay
+	
 	var overlayDiv = myjQuery(`<div class="${overlayClass}" tabindex="0" aria-hidden="false"></div>`)
 	overlayDiv.appendTo(myjQuery('body'))
 
-	var progress = getOverallProgress()
+	var progress = ScrapeSession.getOverallProgress()
 	
+
+	var validateQuantaLinksButtonId = "validate-quanta-links"
+	var closeOverlayButtonId = "close-overlay-button"
 	const markup = `
 	 <div id="${gtnMonkeyDialogId}" class="jira-dialog box-shadow jira-dialog-open popup-width-custom jira-dialog-content-ready aui form-body" 
 	 style="width: 900px;margin-left: -406px;margin-top: -383px;overflow: auto; max-height: 617px; overflow: auto">
@@ -620,8 +450,8 @@ function renderResultsOverlay() {
 		 	<div class="aui-toolbar2 qf-form-operations" role="toolbar">
 		 		<div class="aui-toolbar2-inner">
 		 			<div class="aui-toolbar2-secondary">
-		 				<button id="validate-quanta-links" class="aui-button" resolved="" onclick="checkIfQuantaLinksAreAccessible()">Check Quanta links</button>
-		 				<button id="close-overlay-button" class="aui-button" resolved="" onclick="closeResultsOverlay()">(X) Close</button>
+		 				<button id="${validateQuantaLinksButtonId}" class="aui-button" resolved="">Check Quanta links</button>
+		 				<button id="${closeOverlayButtonId}" class="aui-button" resolved="">(X) Close</button>
 		 			</div>
 		 		</div>
 		 	</div>
@@ -640,6 +470,9 @@ function renderResultsOverlay() {
 	var dialog = myjQuery(markup)
 	dialog.appendTo(myjQuery('body'))
 
+	document.querySelector('#' + validateQuantaLinksButtonId).addEventListener('click', checkIfQuantaLinksAreAccessible)
+	document.querySelector('#' + closeOverlayButtonId).addEventListener('click', closeResultsOverlay)
+
 	showTable()
 	myjQuery('#' + gtnMonkeyDialogId).hide();
 	myjQuery('.' + overlayClass).hide();
@@ -647,7 +480,7 @@ function renderResultsOverlay() {
 
 //TABLE FUNCTIONS
 function showTable() {
-	var numberOfFoundIssues = getNumberOfFoundJiraIssuesFromStorage()
+	var numberOfFoundIssues = Storage.getNumberOfFoundJiraIssues()
 
 
 	const markup = `
@@ -770,7 +603,7 @@ function appendRowToResultTable(jiraData) {
 
 
 function addResultsToTable() {
-	var jiraIssue = getJiraName()
+	var jiraIssue = JiraUrlUtils.getJiraName()
 	var jiraData = getStoredJiraDataForIssue(jiraIssue)
 	appendRowToResultTable(jiraData)
 }
@@ -791,7 +624,7 @@ function checkIfQuantaLinksAreAccessible() {
 	}
 
 	function highlightElements(elementType, type, gtn, available) {
-		color = available ? colorLightGreen : colorGrey
+		var color = available ? colorLightGreen : colorGrey
 		filterJqueryElements(elementType, `${type}-.*-${gtn}`).css("background-color", color);
 	}
 
@@ -864,7 +697,12 @@ function validateQuantaURL(url, successCallback, errorCallback) {
     	}
   	}).catch(function (error) {
     	printError('Request failed', error);
-    	errorCallback(response.url, response.status)
+    	//TODO
+    	// errorCallback(response.url, response.status)
+    	printError("Error while calling validateQuantaURL!, error: " + error)
+    	if (errorCallback != undefined) {
+    		errorCallback(error)	
+    	}
 	});
 }
 
@@ -897,7 +735,7 @@ function copyText(str) {
 }
 
 renderResultsOverlay()
-if (isInProgress() || isFinishedJustNow()) {
+if (ScrapeSession.isInProgress() || ScrapeSession.isFinishedJustNow()) {
 	printLog("Showing overlay...")
 	showResultsOverlay()
 }
