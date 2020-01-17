@@ -1,0 +1,39 @@
+<html><head><meta name="viewport" content="width=device-width, minimum-scale=1.0">
+<script type="text/javascript">
+	function loadModule() {
+		//TODO Figure out why Jquery version does not work at all
+		//MOVE THIS TO BODY
+		// var script = `<script type="module" src="./example-module.mjs"/>`
+		var script = '<script type="text/javascript">alert("hi");</' + 'script>'
+		// document.getElementsByTagName("head")[0].insertAdjacentElement('afterbegin', $(script)[0])
+		document.head.appendChild($(script)[0])
+
+		// var s = document.createElement('script')
+		// s.type = "module"
+		// s.src = "./example-module.mjs"
+		// document.head.appendChild(s)
+		// document.getElementsByTagName("head")[0].insertAdjacentElement('afterbegin',s) 
+
+		var s = document.createElement('script')
+		s.type = "module"
+		s.src = "./example-module.mjs"
+		document.head.appendChild(s)
+		// <script type="text/javascript">alert("hi");
+		
+	}		
+
+function loadScript(src, onloadCallback) {
+	var script = document.createElement("script");
+	script.type = "text/javascript"
+	script.src = src;
+
+	if (onloadCallback) {
+		script.onload = onloadCallback
+	}
+
+	// document.getElementsByTagName("head")[0].appendChild(tag);
+	document.getElementsByTagName("head")[0].insertAdjacentElement('afterbegin', script)
+}
+loadScript("https://code.jquery.com/jquery-1.7.2.min.js", () => { loadModule() })
+
+</script></head><body><div id="diigo-video-capture" style="display: none;"><div id="diigo-video-capture-container"><div id="diigo-video-capture-logo"></div>Capture</div></div><div id="diigo-video-capture-wrapper"><div id="diigo-video-capture-wrapper-tip">Drag to outliner or <span id="diigo-video-capture-upload">Upload</span></div><div id="diigo-video-capture-wrapper-close">Close</div></div><div id="diigo-chrome-installed" style="display: none;"></div></body></html>
