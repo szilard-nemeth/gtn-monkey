@@ -1,11 +1,10 @@
 console.log("Loaded gtn-monkey.js")
 
 import {printLog, printError} from './logging.mjs';
-import {showResultsButtonSelector, attrDisabled, gtnQueryParam} from './common-constants.mjs';
-import * as MapUtils from './maputils.mjs';
+import {showResultsButtonSelector, attrDisabled} from './common-constants.mjs';
 import {JiraUrlUtils, JiraIssueParser} from './jira.mjs';
 import {ScrapeSession} from './scrape-session.mjs';
-import {Storage} from './storage.mjs';
+import {Storage, GtnMonkeyDataStorage} from './storage.mjs';
 import * as Overlay from './overlay.mjs';
 
 //STRING CONSTANTS
@@ -14,14 +13,7 @@ import * as Overlay from './overlay.mjs';
 //Quanta specific constants
 //==========================================
 const QUANTA_URL_VPN_CHECK = "https://quanta.infra.cloudera.com"
-const gtnPlaceholder = "$GTN$"
-const quantaTemplate = `http://cloudera-build-us-west-1.vpc.cloudera.com/s3/quanta/${gtnPlaceholder}/QUASAR_ZIP_FOLDER/`
 //URL example: http://cloudera-build-us-west-1.vpc.cloudera.com/s3/quanta/1681945/QUASAR_ZIP_FOLDER/QUASAR_TEST_LOGS.zip
-
-const quantaTestLogsFilename = "QUASAR_TEST_LOGS.zip"
-const quantaDiagBundleFilename = "QUASAR_DIAG_LOGS.zip"
-const testLogsTemplate = quantaTemplate + quantaTestLogsFilename
-const diagBundleTemplate = quantaTemplate + quantaDiagBundleFilename
 
 const quantaUrlSplitAlong = "/s3/quanta/"
 const urlFragmentTestLogs = "TEST_LOGS"
@@ -34,47 +26,13 @@ const urlFragmentDiagBundle = "DIAG_LOGS"
 const colorLightGreen = "#76D7C4"
 const colorGrey = "#BFC9CA"
 
-const jiraSummarySelector = '#summary-val'
-const jiraIssuesOnFilterPageSelector = '.results-panel .issuekey a'
+//TODO make class: Navigation
 //End of constants
 //==========================================
 
-class JiraData {
-  constructor(id, title, links) {    
-    this.id = id;
-    this.title = title;
 
-    if (links == null || links == undefined) {
-    	links = []
-    }
-
-    //TODO do this conversion earlier?
-    this.links = links.reduce(function(map, link) {
-		var gtn = link.split(gtnQueryParam)[1]
-
-		//If we have anything after GTN number, drop it
-		gtn = gtn.match(/^\d+/gi)
-		
-		if (gtn == undefined || gtn == null) {
-			throw "GTN is not valid for link: " + link
-		}
-    	
-    	map.set(gtn, { 
-    		quantaLink: link,
-    		quantaTestLog: testLogsTemplate.replace(gtnPlaceholder, gtn),
-    		quantaDiagBundle: diagBundleTemplate.replace(gtnPlaceholder, gtn),
-    		quantaTestLogDownloadName: `${this.id}-${gtn}-${quantaTestLogsFilename}`,
-    		quantaDiagBundleDownloadName: `${this.id}-${gtn}-${quantaDiagBundleFilename}`
-    	});
-    	return map;
-	}.bind(this), new Map());
-	console.log("LINKZ: ")
-  }
-}
-
-
-//Collection of in-memory JiraData objects
-var JIRADATA_LIST = []
+//TODO Collection of in-memory JiraData objects
+// var JIRADATA_LIST = []
 
 //ENTRYPOINT: Start up the scraping process
 export function findAllLinksFromJiraIssues() {
@@ -86,7 +44,7 @@ export function findAllLinksFromJiraIssues() {
 	ScrapeSession.start()
 	ScrapeSession.storeOriginPage()
 	
-	var issues = storeFoundJiraIssues()
+	var issues = GtnMonkeyDataStorage.storeFoundJiraIssues()
 	if (!issues || issues.length == 0) {
 		printLog("NO JIRA ISSUES FOUND IN CURRENT PAGE!")
 		return
@@ -117,6 +75,7 @@ function onDocumentReady() {
 	}
 }
 
+//TODO move this to utils.mjs
 function bindEventHandlers() {
 	myjQuery(document).keyup(function(e) {
 		//Hide overlay and dialog on pressing ESC
@@ -151,7 +110,7 @@ function navigateToNextPageCallback() {
 	var parsedPage = issues.shift()
 	printLog("Parsed GTN links from current page")
 	//store modified jira issues array to localStorage so next execution of onDocumentReady() picks up next page
-	storeFoundJiraIssues(issues)
+	GtnMonkeyDataStorage.storeFoundJiraIssues(issues)
 
 	//Navigate to next page
 	if (issues.length > 0) {
@@ -169,90 +128,8 @@ export function cleanupStorage() {
 
 export function storeFoundGTNLinksForJiraIssue(newLinks) {
 	var jiraIssue = JiraUrlUtils.getJiraName()
-	var jiraData = getStoredJiraDataForIssue(jiraIssue)
-	storeFoundGTNLinks(jiraIssue, jiraData, newLinks)
-}
-
-function storeFoundGTNLinks(jiraIssue, jiraData, newLinks) {
-	if (jiraData.links > 0) {
-		printLog("Found data for '" + jiraIssue + "', appending data to it")
-	}
-	printLog("Found new GTN links: " + JSON.stringify(newLinks))
-	var linksArray = Array.from(jiraData.links.values()).map(val => val.quantaLink).concat(newLinks)
-	printLog("Updated links: " + JSON.stringify(linksArray))
-
-	var jiraTitle = myjQuery(jiraSummarySelector).text()
-	
-	//create JiraData
-	var data = new JiraData(jiraIssue, jiraTitle, linksArray)
-	printLog("Storing modified JiraData: " + JSON.stringify(data))
-
-	//update JiraData array and store it to localStorage
-	var allJiraData = deserializeAllJiraData()
-	var foundJiraData = getJiraData(allJiraData, jiraIssue, false)
-	if (foundJiraData != null) {
-		printLog(`Replacing found jiraData: ${JSON.stringify(foundJiraData)} with new JiraData: ${JSON.stringify(data)}`)
-		// var idx = allJiraData.indexOf(foundJiraData)
-		// allJiraData[idx] = data
-		foundJiraData.links = data.links
-	} else {
-		allJiraData.push(data)
-	}
-	
-	//Convert Map before calling JSON.stringify as Maps are not serializable
-	allJiraData.forEach(jd => jd.links = MapUtils.strMapToObj(jd.links))
-	Storage.storeJiraDataObjs(allJiraData)
-}
-
-function storeFoundJiraIssues(jiraIssues) {
-	var issueLinks
-	if (jiraIssues === undefined) {
-		issueLinks = myjQuery(jiraIssuesOnFilterPageSelector).map(function() {
-			return JiraUrlUtils.getServerPrefixedUrl(myjQuery(this).attr('href'))
-		}).toArray();
-		printLog("Found jira issues on origin (filter) page: " + issueLinks.toString())
-
-		//Only store number of jira issues if this is the initial run
-		Storage.storeNumberOfJiraIssuesFound(issueLinks.length)
-	} else {
-		printLog("Storing jira issues: " + jiraIssues.toString())
-		issueLinks = jiraIssues
-	}
-	Storage.storeJiraIssuesFound(issueLinks)
-
-	return issueLinks
-}
-
-function getStoredJiraDataForIssue(jiraIssue) {
-	var allJiraData = deserializeAllJiraData()
-	return getJiraData(allJiraData, jiraIssue)
-}
-
-//TODO can be removed later
-function getJiraData(allJiraData, jiraIssueId, create = true) {
-	var found = allJiraData.find(jd => jd.id === jiraIssueId);
-	if (found != undefined && found != null) {
-		return found
-	}
-	if (create) {
-		return new JiraData(null, null, [])	
-	} else {
-		return null
-	}
-}
-
-export function deserializeAllJiraData() {
-	var allJiraDataObj = Storage.getJiraDataObjs();
-	return allJiraDataObj.map(jiraData => {
-		jiraData = Object.assign(new JiraData(null, null, []), jiraData)
-		if (!(jiraData.links instanceof Map)) {
-			// jiraData.links = new Map(Object.entries(jiraData.links));
-			jiraData.links = MapUtils.objToStrMap(jiraData.links)
-			//jiraData.links = JSON.parse(JSON.stringify(jiraData.links)).reduce((m, [key, val]) => m.set(key, val) , new Map());
-		}
-		printLog("Deserialized JiraData: " + JSON.stringify(jiraData))
-		return jiraData
-	})
+	var jiraData = GtnMonkeyDataStorage.getStoredJiraDataForIssue(jiraIssue)
+	GtnMonkeyDataStorage.storeFoundGTNLinks(jiraIssue, jiraData, newLinks)
 }
 
 function gotoNextPage(issues) {
@@ -272,6 +149,7 @@ function changeLocation(location) {
 	window.location.href = location
 }
 
+//TODO move this to utils.mjs
 function isFunction(functionToCheck) {
 	return functionToCheck && {}.toString.call(functionToCheck) === '[object Function]';
 }
@@ -284,10 +162,11 @@ myjQuery(document).ready(function() {
 
 function addResultsToTable() {
 	var jiraIssue = JiraUrlUtils.getJiraName()
-	var jiraData = getStoredJiraDataForIssue(jiraIssue)
+	var jiraData = GtnMonkeyDataStorage.getStoredJiraDataForIssue(jiraIssue)
 	Overlay.appendRowToResultTable(jiraData)
 }
 
+//TODO move this to utils.mjs
 function filterJqueryElements(elementType, regexStr) {
 	return $(elementType).filter(function() {
    		return this.id.match(new RegExp(regexStr));
@@ -327,7 +206,7 @@ export function checkIfQuantaLinksAreAccessible() {
 			})
 	}
 
-	var allJiraData = deserializeAllJiraData()
+	var allJiraData = GtnMonkeyDataStorage.deserializeAllJiraData()
 	checkURL(CORS_ANYWHERE_SERVER_URL, () => { //successcallback
 
 		//Perform VPN check
@@ -402,6 +281,7 @@ function checkURL(url, successCallback, errorCallback) {
 	});
 }
 
+//TODO move this to utils.mjs
 function copyText(str) {
 	const el = document.createElement('textarea');
 	el.value = str;

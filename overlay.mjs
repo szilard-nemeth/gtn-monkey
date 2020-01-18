@@ -2,7 +2,7 @@ import {showResultsButtonSelector, attrDisabled} from './common-constants.mjs';
 import {printLog, printError} from './logging.mjs';
 
 //TODO Remove these as dependencies later: Results should come from GTN-monkey.mjs
-import {Storage} from './storage.mjs';
+import {Storage, GtnMonkeyDataStorage} from './storage.mjs';
 import {ScrapeSession} from './scrape-session.mjs';
 import * as GtnMonkey from './gtn-monkey.mjs';
 //End of TODO
@@ -127,7 +127,7 @@ function showTable() {
 	var table = myjQuery(markup)
 	table.appendTo(myjQuery('#' + gtnMonkeyDialogId))
 
-	var allJiraData = GtnMonkey.deserializeAllJiraData()
+	var allJiraData = GtnMonkeyDataStorage.deserializeAllJiraData()
 	allJiraData.forEach(jd => {
 		appendRowToResultTable(jd)
 	})

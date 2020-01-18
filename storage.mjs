@@ -1,4 +1,7 @@
 import {printLog, printError} from './logging.mjs';
+import {JiraUrlUtils, JiraIssueParser} from './jira.mjs';
+import * as MapUtils from './maputils.mjs';
+import {gtnQueryParam} from './common-constants.mjs';
 
 class StorageKeys {
 	static get PROGRESS() { return 'gtnmonkey_progress' }
@@ -9,6 +12,49 @@ class StorageKeys {
 	static get JIRAISSUES() { return 'gtnmonkey_jiraissues' }
 	static get NUMBER_OF_JIRA_ISSUES() { return 'gtnmonkey_number_of_jiraissues' }
 	static get JIRA_FILTER_NAME() { return 'gtnmonkey_filterName' }
+}
+
+//TODO move these to somewhere else?
+const quantaTestLogsFilename = "QUASAR_TEST_LOGS.zip"
+const quantaDiagBundleFilename = "QUASAR_DIAG_LOGS.zip"
+const gtnPlaceholder = "$GTN$"
+const quantaTemplate = `http://cloudera-build-us-west-1.vpc.cloudera.com/s3/quanta/${gtnPlaceholder}/QUASAR_ZIP_FOLDER/`
+const testLogsTemplate = quantaTemplate + quantaTestLogsFilename
+const diagBundleTemplate = quantaTemplate + quantaDiagBundleFilename
+
+
+
+class JiraData {
+  constructor(id, title, links) {    
+    this.id = id;
+    this.title = title;
+
+    if (links == null || links == undefined) {
+    	links = []
+    }
+
+    //TODO do this conversion earlier?
+    this.links = links.reduce(function(map, link) {
+		var gtn = link.split(gtnQueryParam)[1]
+
+		//If we have anything after GTN number, drop it
+		gtn = gtn.match(/^\d+/gi)
+		
+		if (gtn == undefined || gtn == null) {
+			throw "GTN is not valid for link: " + link
+		}
+    	
+    	map.set(gtn, { 
+    		quantaLink: link,
+    		quantaTestLog: testLogsTemplate.replace(gtnPlaceholder, gtn),
+    		quantaDiagBundle: diagBundleTemplate.replace(gtnPlaceholder, gtn),
+    		quantaTestLogDownloadName: `${this.id}-${gtn}-${quantaTestLogsFilename}`,
+    		quantaDiagBundleDownloadName: `${this.id}-${gtn}-${quantaDiagBundleFilename}`
+    	});
+    	return map;
+	}.bind(this), new Map());
+	console.log("LINKZ: ")
+  }
 }
 
 //TODO create classes: GtnMonkeyDataStorage, GtnMonkeyProgressStorage, keep Storage for generic functions like cleanup
@@ -87,4 +133,92 @@ class Storage {
 	}
 }
 
-export {Storage, StorageKeys};
+//TODO move these to somewhere else? Feels like these belong to jira.mjs?
+const jiraSummarySelector = '#summary-val'
+const jiraIssuesOnFilterPageSelector = '.results-panel .issuekey a'
+
+class GtnMonkeyDataStorage {
+	static storeFoundGTNLinks(jiraIssue, jiraData, newLinks) {
+		if (jiraData.links > 0) {
+			printLog("Found data for '" + jiraIssue + "', appending data to it")
+		}
+		printLog("Found new GTN links: " + JSON.stringify(newLinks))
+		var linksArray = Array.from(jiraData.links.values()).map(val => val.quantaLink).concat(newLinks)
+		printLog("Updated links: " + JSON.stringify(linksArray))
+
+		var jiraTitle = myjQuery(jiraSummarySelector).text()
+		
+		//create JiraData
+		var data = new JiraData(jiraIssue, jiraTitle, linksArray)
+		printLog("Storing modified JiraData: " + JSON.stringify(data))
+
+		//update JiraData array and store it to localStorage
+		var allJiraData = this.deserializeAllJiraData()
+		var foundJiraData = this.getJiraData(allJiraData, jiraIssue, false)
+		if (foundJiraData != null) {
+			printLog(`Replacing found jiraData: ${JSON.stringify(foundJiraData)} with new JiraData: ${JSON.stringify(data)}`)
+			// var idx = allJiraData.indexOf(foundJiraData)
+			// allJiraData[idx] = data
+			foundJiraData.links = data.links
+		} else {
+			allJiraData.push(data)
+		}
+		
+		//Convert Map before calling JSON.stringify as Maps are not serializable
+		allJiraData.forEach(jd => jd.links = MapUtils.strMapToObj(jd.links))
+		Storage.storeJiraDataObjs(allJiraData)
+	}
+
+	static storeFoundJiraIssues(jiraIssues) {
+		var issueLinks
+		if (jiraIssues === undefined) {
+			issueLinks = myjQuery(jiraIssuesOnFilterPageSelector).map(function() {
+				return JiraUrlUtils.getServerPrefixedUrl(myjQuery(this).attr('href'))
+			}).toArray();
+			printLog("Found jira issues on origin (filter) page: " + issueLinks.toString())
+
+			//Only store number of jira issues if this is the initial run
+			Storage.storeNumberOfJiraIssuesFound(issueLinks.length)
+		} else {
+			printLog("Storing jira issues: " + jiraIssues.toString())
+			issueLinks = jiraIssues
+		}
+		Storage.storeJiraIssuesFound(issueLinks)
+
+		return issueLinks
+	}
+
+	static getStoredJiraDataForIssue(jiraIssue) {
+		var allJiraData = this.deserializeAllJiraData()
+		return this.getJiraData(allJiraData, jiraIssue)
+	}
+
+	//TODO can be removed later (probably)
+	static getJiraData(allJiraData, jiraIssueId, create = true) {
+		var found = allJiraData.find(jd => jd.id === jiraIssueId);
+		if (found != undefined && found != null) {
+			return found
+		}
+		if (create) {
+			return new JiraData(null, null, [])	
+		} else {
+			return null
+		}
+	}
+
+	static deserializeAllJiraData() {
+		var allJiraDataObj = Storage.getJiraDataObjs();
+		return allJiraDataObj.map(jiraData => {
+			jiraData = Object.assign(new JiraData(null, null, []), jiraData)
+			if (!(jiraData.links instanceof Map)) {
+				// jiraData.links = new Map(Object.entries(jiraData.links));
+				jiraData.links = MapUtils.objToStrMap(jiraData.links)
+				//jiraData.links = JSON.parse(JSON.stringify(jiraData.links)).reduce((m, [key, val]) => m.set(key, val) , new Map());
+			}
+			printLog("Deserialized JiraData: " + JSON.stringify(jiraData))
+			return jiraData
+		})
+	}
+}
+
+export {Storage, StorageKeys, GtnMonkeyDataStorage};
