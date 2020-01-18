@@ -1,9 +1,9 @@
 console.log("Loaded gtn-monkey.js")
 
 import {printLog, printError} from './logging.mjs';
-import {showResultsButtonSelector, attrDisabled} from './common-constants.mjs';
+import {showResultsButtonSelector, attrDisabled, gtnQueryParam} from './common-constants.mjs';
 import * as MapUtils from './maputils.mjs';
-import {JiraUrlUtils} from './jira.mjs';
+import {JiraUrlUtils, JiraIssueParser} from './jira.mjs';
 import {ScrapeSession} from './scrape-session.mjs';
 import {Storage} from './storage.mjs';
 import * as Overlay from './overlay.mjs';
@@ -30,32 +30,12 @@ const urlFragmentDiagBundle = "DIAG_LOGS"
 //GTN Monkey constants
 //==========================================
 
-const gtnQueryParam = "gtn="
-
 //others
 const colorLightGreen = "#76D7C4"
 const colorGrey = "#BFC9CA"
 
-
-
-//These are 2 states for the "Show more comments" button: 
-//Examples:
-//1. When collapsed
-//<a class="collapsed-comments" href="/browse/CDH-76879?page=com.atlassian.jira.plugin.system.issuetabpanels:comment-tabpanel&amp;showAll=true">
-//<span class="collapsed-comments-line"></span><span class="show-more-comments" data-collapsed-count="18">18 older comments</span></a>
-
-//2. While Loading
-//<span class="show-more-comments" data-collapsed-count="18">Loading...</span>
-const showMoreCommentsButton = "show-more-comments"
-const collapsedCommentsButton = "collapsed-comments"
-
-//TODO Move these to JiraConstants
-const descriptionSelector = '#descriptionmodule p'
-const commentSelector = '.twixi-wrap > .action-body'
 const jiraSummarySelector = '#summary-val'
 const jiraIssuesOnFilterPageSelector = '.results-panel .issuekey a'
-
-
 //End of constants
 //==========================================
 
@@ -68,6 +48,7 @@ class JiraData {
     	links = []
     }
 
+    //TODO do this conversion earlier?
     this.links = links.reduce(function(map, link) {
 		var gtn = link.split(gtnQueryParam)[1]
 
@@ -124,7 +105,7 @@ function onDocumentReady() {
 
 		//double-check URL
 		if (issues && issues.length > 0 && window.location.href === issues[0]) {
-			parseGTNLinksFromPage(navigateToNextPageCallback)
+			JiraIssueParser.parseGTNLinksFromPage(navigateToNextPageCallback)
 		} else if (location == Storage.getOriginPage() && ScrapeSession.isInProgress()) {
 			//We got back to the origin page
 			//Let's show final results: showResultsOverlay should be executed as progress is finished
@@ -181,105 +162,6 @@ function navigateToNextPageCallback() {
 	}
 }
 
-function waitForCommentsLoaded(functionsToCall) {
-	var waitForEl = function(selector, callbacks, count) {
-		if (!count) {
-			count = 0;
-		}
-		printLog("Waiting for " + selector + " to disappear... Tried: " + count + " times.")
-		if (myjQuery(selector).length == 0) {
-			var callbackNames = callbacks.map(c => c.name)
-			printLog("waitForCommentsLoaded: Selector: " + selector + ", callbacks: " + callbackNames + ", count: " + count)
-			callbacks.forEach(c => c())
-		} else {
-			setTimeout(function() {
-				if (!count) {
-					count = 0;
-				}
-				count++;
-				if (count < 10) {
-					waitForEl(selector, callbacks, count);
-				} else { 
-					return; 
-				}
-			}, 1000);
-		}
-	};
-	waitForEl("." + showMoreCommentsButton, functionsToCall);
-}
-
-function parseAndSaveLinksFromDescription() {
-	var description = myjQuery(descriptionSelector).html()
-	var links = findLinksInHtml(description)
-	if (links != null) {
-		storeFoundGTNLinksForJiraIssue(links)
-	} else {
-		storeFoundGTNLinksForJiraIssue([])
-	}
-}
-
-function parseGTNLinksFromPage(callback) {
-	printLog("Parsing GTN links from current page")
-	//Click on show more comments button
-	myjQuery('.' + collapsedCommentsButton).trigger("click")
-	//TODO can't figure out why the call above does not work!!	
-	jQuery('.' + collapsedCommentsButton).trigger("click")
-
-	waitForCommentsLoaded([parseAndSaveComments, parseAndSaveLinksFromDescription, callback])
-}
-
-function parseAndSaveComments() {
-	printLog("Comments loaded");
-	var allLinks = []
-	myjQuery(commentSelector).each(function() {
-		var links = findLinksInHtml(myjQuery(this).html())
-
-		if (links == null) {
-			storeFoundGTNLinksForJiraIssue([])
-		} else {
-			if (links.length > 0) {
-				allLinks = allLinks.concat(links)
-			}
-		}
- 	});
-
-	storeFoundGTNLinksForJiraIssue(allLinks)
-}
-
-function findLinksInHtml(html) {
-	if (html == undefined || html == null) {
-		return null
-	}
-
-	var urlRegex = /(\b(https?|ftp|file):\/\/[-a-zA-Z0-9+&@#\/%?=~_|!:,.;]*[-a-zA-Z0-9+&@#\/%=~_|])/ig;
-	var links = html.match(urlRegex);
-	
-	if (links == null || links == undefined) {
-		return []
-	}
-
-	let filterDupes = (links) => links.filter((v,i) => links.indexOf(v) === i)
-	links = filterDupes(links)
-
-	links = links.map(function(link) {
-		if (link.indexOf(gtnQueryParam) != -1) {
-			printLog("Found link matching GTN: " + link)
-			return link;
-		} else {
-			return null
-		}
-	})
-
-	links = links.filter(function(link) {
-	  if (link == null) {
-	    return false;
-	  }
-	  return true;
-	})
-
-	return links
-}
-
 
 //Store functions for localStorage
 export function cleanupStorage() {
@@ -287,7 +169,7 @@ export function cleanupStorage() {
 	enableButton(showResultsButtonSelector, false)
 }
 
-function storeFoundGTNLinksForJiraIssue(newLinks) {
+export function storeFoundGTNLinksForJiraIssue(newLinks) {
 	var jiraIssue = JiraUrlUtils.getJiraName()
 	var jiraData = getStoredJiraDataForIssue(jiraIssue)
 	storeFoundGTNLinks(jiraIssue, jiraData, newLinks)

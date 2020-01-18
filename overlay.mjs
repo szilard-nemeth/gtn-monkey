@@ -1,5 +1,4 @@
 import {showResultsButtonSelector, attrDisabled} from './common-constants.mjs';
-
 import {printLog, printError} from './logging.mjs';
 
 //TODO Remove these as dependencies later: Results should come from GTN-monkey.mjs
