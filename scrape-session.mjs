@@ -68,11 +68,8 @@ class ScrapeSession {
 	}
 
 	static storeOriginPage() {
-		var origin = window.location.href
-		var filterName = myjQuery(JiraConstants.JIRA_FILTER_NAME_SELECTOR).text()
-		window.localStorage.setItem(StorageKeys.ORIGIN_PAGE, origin)
-		window.localStorage.setItem(StorageKeys.JIRA_FILTER_NAME, filterName)
-		printLog("Stored origin page: " + origin)
+		Storage.storeFilterName(myjQuery(JiraConstants.JIRA_FILTER_NAME_SELECTOR).text())
+		Storage.storeOriginPage(window.location.href)
 	}
 
 	static isFinished() {

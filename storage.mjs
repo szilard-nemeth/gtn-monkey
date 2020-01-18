@@ -11,7 +11,7 @@ class StorageKeys {
 	static get JIRA_FILTER_NAME() { return 'gtnmonkey_filterName' }
 }
 
-
+//TODO create classes: GtnMonkeyDataStorage, GtnMonkeyProgressStorage, keep Storage for generic functions like cleanup
 class Storage {
 	static cleanup() {
 		this.deleteLocalStorageItem(StorageKeys.RESULT)
@@ -27,7 +27,10 @@ class Storage {
 		window.localStorage.removeItem(key)
 	}
 
-	//Store functions
+	static getNumberOfFoundJiraIssues() {
+		return window.localStorage.getItem(StorageKeys.NUMBER_OF_JIRA_ISSUES)
+	}
+
 	static storeNumberOfJiraIssuesFound(issueLinksLength) {
 		window.localStorage.setItem(StorageKeys.NUMBER_OF_JIRA_ISSUES, issueLinksLength)	
 	}
@@ -42,6 +45,10 @@ class Storage {
 		window.localStorage.setItem(StorageKeys.RESULT, allJiraDataJson);
 	}
 
+	static getFoundJiraIssues() {
+		return JSON.parse(localStorage.getItem(StorageKeys.JIRAISSUES) || "[]");
+	}
+
 	static getJiraDataObjs() {
 		var rawStr = window.localStorage.getItem(StorageKeys.RESULT)
 		var allJiraDataObj = JSON.parse(rawStr)
@@ -52,22 +59,22 @@ class Storage {
 		return allJiraDataObj
 	}
 	
+	static storeFilterName(filterName) {
+		window.localStorage.setItem(StorageKeys.JIRA_FILTER_NAME, filterName)	
+	}
 
 	//TODO used just in this class, how to mark it private
 	static getFilterName() {
 		return window.localStorage.getItem(StorageKeys.JIRA_FILTER_NAME)	
 	}
 
+	static storeOriginPage(originPage) {
+		window.localStorage.setItem(StorageKeys.ORIGIN_PAGE, originPage)
+		printLog("Stored originPage: " + originPage)
+	}
+
 	static getOriginPage() {
 		return window.localStorage.getItem(StorageKeys.ORIGIN_PAGE)	
-	}
-
-	static getNumberOfFoundJiraIssues() {
-		return window.localStorage.getItem(StorageKeys.NUMBER_OF_JIRA_ISSUES)
-	}
-
-	static getFoundJiraIssues() {
-		return JSON.parse(localStorage.getItem(StorageKeys.JIRAISSUES) || "[]");
 	}
 
 	//currently unused

@@ -162,8 +162,6 @@ function navigateToNextPageCallback() {
 	}
 }
 
-
-//Store functions for localStorage
 export function cleanupStorage() {
 	Storage.cleanup()
 	enableButton(showResultsButtonSelector, false)
@@ -225,7 +223,6 @@ function storeFoundJiraIssues(jiraIssues) {
 	return issueLinks
 }
 
-//Retrieve functions for localStorage
 function getStoredJiraDataForIssue(jiraIssue) {
 	var allJiraData = deserializeAllJiraData()
 	return getJiraData(allJiraData, jiraIssue)
@@ -242,7 +239,6 @@ function getJiraData(allJiraData, jiraIssueId, create = true) {
 	} else {
 		return null
 	}
-	
 }
 
 export function deserializeAllJiraData() {
