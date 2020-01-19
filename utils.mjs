@@ -1,4 +1,8 @@
 import {printLog, printError} from './logging.mjs';
+import {GtnMonkeyDataStorage} from './storage.mjs';
+
+const colorLightGreen = "#76D7C4"
+const colorGrey = "#BFC9CA"
 
 class LinkUtils {
 	//TODO How to simplify? Chaining method calls?
@@ -63,6 +67,46 @@ class ElementUtils {
 			}.bind(this), 1000);
 		}
 	};
+
+	static highlightElements(elementType, type, gtn, available) {
+		var color = available ? colorLightGreen : colorGrey
+		this.filterJqueryElements(elementType, `${type}-.*-${gtn}`).css("background-color", color);
+	}
+
+	//TODO this should be private
+	static filterJqueryElements(elementType, regexStr) {
+		return $(elementType).filter(function() {
+	   		return this.id.match(new RegExp(regexStr));
+	  	})
+	}
 }
 
-export {LinkUtils, ElementUtils}
+class RequestUtils {
+	static async requestHttpHead(url = '', method = 'HEAD') {
+	  const response = await fetch(url, {
+		method: method,
+		mode: 'cors',
+		cache: 'no-cache',
+		credentials: 'same-origin'
+	  });
+	  return await response 
+	}
+
+	static checkURL(url, successCallback, errorCallback) {
+		this.requestHttpHead(url).then((response) => {
+	    	printLog(`Request result:: URL: ${response.url}, response OK: ${response.ok}, response status: ${response.status}`)
+	    	if (response.ok && response.status == 200) {
+	    		printLog(`URL ${response.url} is valid and reachable. Calling callback function...`)
+	    		successCallback()
+	    	} else {
+	    		printLog(`Cannot access URL ${response.url}, got HTTP status: ${response.status}!`)
+	    		errorCallback()
+	    	}
+	  	}).catch(function (error) {
+	    	printError('Request failed', error);
+	    	errorCallback()
+		});
+	}
+}
+
+export {LinkUtils, ElementUtils, RequestUtils}

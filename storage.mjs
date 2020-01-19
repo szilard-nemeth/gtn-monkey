@@ -14,10 +14,12 @@ class StorageKeys {
 	static get JIRA_FILTER_NAME() { return 'gtnmonkey_filterName' }
 }
 
-//TODO move these to somewhere else?
+//TODO move Quanta constants to quanta.mjs
 const quantaTestLogsFilename = "QUASAR_TEST_LOGS.zip"
 const quantaDiagBundleFilename = "QUASAR_DIAG_LOGS.zip"
 const gtnPlaceholder = "$GTN$"
+
+//URL example: http://cloudera-build-us-west-1.vpc.cloudera.com/s3/quanta/1681945/QUASAR_ZIP_FOLDER/QUASAR_TEST_LOGS.zip
 const quantaTemplate = `http://cloudera-build-us-west-1.vpc.cloudera.com/s3/quanta/${gtnPlaceholder}/QUASAR_ZIP_FOLDER/`
 const testLogsTemplate = quantaTemplate + quantaTestLogsFilename
 const diagBundleTemplate = quantaTemplate + quantaDiagBundleFilename
@@ -137,6 +139,8 @@ class Storage {
 const jiraSummarySelector = '#summary-val'
 const jiraIssuesOnFilterPageSelector = '.results-panel .issuekey a'
 
+//TODO Collection of in-memory JiraData objects
+// var JIRADATA_LIST = []
 class GtnMonkeyDataStorage {
 	static storeFoundGTNLinks(jiraIssue, jiraData, newLinks) {
 		if (jiraData.links > 0) {

@@ -1,22 +1,30 @@
 import {JiraUrlUtils} from './jira.mjs';
 import {ScrapeSession} from './scrape-session.mjs';
 
-export function printLog(message) {
-	consoleMessage("log", message)
+export function printLog(message, args) {
+	consoleMessage("log", message, args)
 }
 
-export function printError(message) {
-	consoleMessage("error", message)
+export function printError(message, args) {
+	consoleMessage("error", message, args)
 }
 
 //TODO decouple 
-function consoleMessage(type, message) {
+function consoleMessage(type, message, args) {
 	var logPrefix = `GTN monkey (PAGE: ${getPage()}, PROGRESS: ${getProgress()}) `
 
 	if (type === "log") {
-		console.log(logPrefix + message)	
+		if (args != undefined) {
+			console.log(logPrefix + message, args)
+		} else {
+			console.log(logPrefix + message)
+		}
 	} else if (type === "error") {
-		console.error(logPrefix + message)
+		if (args != undefined) {
+			console.error(logPrefix + message, args)
+		} else {
+			console.error(logPrefix + message)
+		}
 	} else {
 		throw "Unrecognized log method type: " + type
 	}
