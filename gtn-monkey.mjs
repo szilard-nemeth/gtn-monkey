@@ -19,14 +19,13 @@ export function findAllLinksFromJiraIssues() {
 	}
 
 	ScrapeSession.start()
-	ScrapeSession.storeOriginPage()
 	
 	var issues = GtnMonkeyDataStorage.storeFoundJiraIssues()
 	if (!issues || issues.length == 0) {
 		printLog("NO JIRA ISSUES FOUND IN CURRENT PAGE!")
 		return
 	}
-	Navigation.gotoNextPage(Storage.getFoundJiraIssues())
+	Navigation.gotoNextPage(Storage.getFoundJiraIssues()[0])
 }
 
 function onDocumentReady() {
@@ -82,6 +81,7 @@ export function showResultsOverlay() {
 }
 
 function navigateToNextPageCallback() {
+	//TODO no need to re-store data, don't delete source issue links array, just store current index!
 	addResultsToTable()
 	var issues = Storage.getFoundJiraIssues()
 	var parsedPage = issues.shift()
@@ -91,7 +91,7 @@ function navigateToNextPageCallback() {
 
 	//Navigate to next page
 	if (issues.length > 0) {
-		Navigation.gotoNextPage(issues)
+		Navigation.gotoNextPage(issues[0])
 	} else {
 		printLog("No more pages to process. Changing location to origin jira URL: " + Storage.getOriginPage())
 		Navigation.gotoOriginPage()

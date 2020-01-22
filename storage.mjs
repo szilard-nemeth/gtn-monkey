@@ -79,6 +79,7 @@ class Storage {
 		return window.localStorage.getItem(StorageKeys.NUMBER_OF_JIRA_ISSUES)
 	}
 
+	//private
 	static storeNumberOfJiraIssuesFound(issueLinksLength) {
 		window.localStorage.setItem(StorageKeys.NUMBER_OF_JIRA_ISSUES, issueLinksLength)	
 	}
@@ -87,6 +88,7 @@ class Storage {
 		window.localStorage.setItem(StorageKeys.JIRAISSUES, JSON.stringify(issueLinks))
 	}
 
+	//private
 	static storeJiraDataObjs(allJiraData) {
 		var allJiraDataJson = JSON.stringify(allJiraData)
 		printLog("Storing modified array of JiraData: " + allJiraDataJson)
@@ -107,6 +109,7 @@ class Storage {
 		return allJiraDataObj
 	}
 	
+	//used from ScrapeSession
 	static storeFilterName(filterName) {
 		window.localStorage.setItem(StorageKeys.JIRA_FILTER_NAME, filterName)	
 	}
@@ -116,6 +119,7 @@ class Storage {
 		return window.localStorage.getItem(StorageKeys.JIRA_FILTER_NAME)	
 	}
 
+	//used from ScrapeSession
 	static storeOriginPage(originPage) {
 		window.localStorage.setItem(StorageKeys.ORIGIN_PAGE, originPage)
 		printLog("Stored originPage: " + originPage)

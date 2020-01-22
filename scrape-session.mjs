@@ -12,6 +12,7 @@ class ScrapeSession {
 
 	static start() {
 		ScrapeProgress.storeProgress(PROGRESS_STARTED)
+		ScrapeSession.storeOriginPage()
 	}
 
 	static processNextPage() {
@@ -30,6 +31,7 @@ class ScrapeSession {
 		ScrapeProgress.getOverallProgress()
 	}
 
+	//private
 	static storeOriginPage() {
 		Storage.storeFilterName(myjQuery(JiraConstants.JIRA_FILTER_NAME_SELECTOR).text())
 		Storage.storeOriginPage(window.location.href)
@@ -122,14 +124,15 @@ class ScrapeProgress {
 }
 
 class Navigation {
-	static gotoNextPage(issues) {
-		changeLocation(issues[0])
+	static gotoNextPage(pageURL) {
+		changeLocation(pageURL)
 	}
 
 	static gotoOriginPage() {
 		changeLocation(Storage.getOriginPage())
 	}
 
+	//private
 	static changeLocation(location) {
 		var origin = Storage.getOriginPage()
 		if (location !== origin) {
