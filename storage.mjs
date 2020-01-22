@@ -5,10 +5,6 @@ import {gtnQueryParam} from './common-constants.mjs';
 import {ScrapeProgress} from './scrape-session.mjs';
 
 class StorageKeys {
-	static get PROGRESS() { return 'gtnmonkey_progress' }
-	static get PROGRESS_STR() { return 'gtnmonkey_progress_str' }
-	static get PROGRESS_FINISHED_AT() { return 'gtnmonkey_progress_finished_at' }
-
 	static get PROGRESS_OBJ() { return 'gtnmonkey_progress_obj' }
 
 	static get RESULT() { return 'gtnmonkey_result' }
