@@ -1,6 +1,8 @@
 import {Storage, StorageKeys} from './storage.mjs';
 import {JiraUrlUtils, JiraConstants} from './jira.mjs';
 import {printLog, printError} from './logging.mjs';
+import {Navigation} from './scrape-session.mjs';
+
 
 //TODO make Progress class to decouple progress
 //progress
@@ -44,6 +46,26 @@ class ScrapeSession {
 	//TODO rename: isFinishedRecently
 	static isFinishedJustNow() {
 		ScrapeProgress.isFinishedJustNow()
+	}
+
+	static gotoNextPageAtStart() {
+		Navigation.gotoNextPage(Storage.getFoundJiraIssues()[0])
+	}
+
+	static gotoNextPageWhileScraping(page) {
+		var issues = Storage.getFoundJiraIssues()
+		var parsedPage = issues.shift()
+		printLog("Parsed GTN links from current page")
+		//store modified jira issues array to Storage so next execution of onDocumentReady() picks up next page
+		GtnMonkeyDataStorage.storeFoundJiraIssues(issues)
+
+		//Navigate to next page
+		if (issues.length > 0) {
+			Navigation.gotoNextPage(issues[0])
+		} else {
+			printLog("No more pages to process. Changing location to origin jira URL: " + Storage.getOriginPage())
+			Navigation.gotoOriginPage()
+		}
 	}
 }
 

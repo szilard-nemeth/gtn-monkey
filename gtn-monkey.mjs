@@ -3,13 +3,10 @@ console.log("Loaded gtn-monkey.js")
 import {printLog, printError} from './logging.mjs';
 import {showResultsButtonSelector, attrDisabled} from './common-constants.mjs';
 import {JiraUrlUtils, JiraIssueParser} from './jira.mjs';
-import {ScrapeSession, Navigation} from './scrape-session.mjs';
+import {ScrapeSession} from './scrape-session.mjs';
 import {Storage, GtnMonkeyDataStorage} from './storage.mjs';
 import * as Overlay from './overlay.mjs';
 import {Quanta} from './quanta.mjs';
-
-
-//TODO make class: Navigation
 
 //ENTRYPOINT: Start up the scraping process
 export function findAllLinksFromJiraIssues() {
@@ -25,7 +22,7 @@ export function findAllLinksFromJiraIssues() {
 		printLog("NO JIRA ISSUES FOUND IN CURRENT PAGE!")
 		return
 	}
-	Navigation.gotoNextPage(Storage.getFoundJiraIssues()[0])
+	ScrapeSession.gotoNextPageAtStart()
 }
 
 function onDocumentReady() {
@@ -83,19 +80,7 @@ export function showResultsOverlay() {
 function navigateToNextPageCallback() {
 	//TODO no need to re-store data, don't delete source issue links array, just store current index!
 	addResultsToTable()
-	var issues = Storage.getFoundJiraIssues()
-	var parsedPage = issues.shift()
-	printLog("Parsed GTN links from current page")
-	//store modified jira issues array to Storage so next execution of onDocumentReady() picks up next page
-	GtnMonkeyDataStorage.storeFoundJiraIssues(issues)
-
-	//Navigate to next page
-	if (issues.length > 0) {
-		Navigation.gotoNextPage(issues[0])
-	} else {
-		printLog("No more pages to process. Changing location to origin jira URL: " + Storage.getOriginPage())
-		Navigation.gotoOriginPage()
-	}
+	ScrapeSession.gotoNextPageWhileScraping()
 }
 
 export function cleanupStorage() {
