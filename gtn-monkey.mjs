@@ -15,14 +15,10 @@ export function findAllLinksFromJiraIssues() {
 		cleanupStorage()
 	}
 
-	ScrapeSession.start()
-	
-	var issues = GtnMonkeyDataStorage.storeFoundJiraIssues()
-	if (!issues || issues.length == 0) {
-		printLog("NO JIRA ISSUES FOUND IN CURRENT PAGE!")
-		return
+	var foundIssues = ScrapeSession.start()
+	if (foundIssues) {
+		ScrapeSession.gotoNextPageAtStart()	
 	}
-	ScrapeSession.gotoNextPageAtStart()
 }
 
 function onDocumentReady() {

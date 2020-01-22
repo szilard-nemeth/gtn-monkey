@@ -15,6 +15,13 @@ class ScrapeSession {
 	static start() {
 		ScrapeProgress.storeProgress(PROGRESS_STARTED)
 		ScrapeSession.storeOriginPage()
+
+		var issues = GtnMonkeyDataStorage.storeFoundJiraIssues()
+		if (!issues || issues.length == 0) {
+			printLog("NO JIRA ISSUES FOUND IN CURRENT PAGE!")
+			return false
+		}
+		return true
 	}
 
 	static processNextPage() {
