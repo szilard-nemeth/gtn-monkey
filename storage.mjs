@@ -5,7 +5,6 @@ import {gtnQueryParam} from './common-constants.mjs';
 import {ScrapeProgress} from './scrape-session.mjs';
 
 class StorageKeys {
-	//TODO remove legacy keys: PROGRESS, PROGRESS_STR, PROGRESS_FINISHED_AT
 	static get PROGRESS() { return 'gtnmonkey_progress' }
 	static get PROGRESS_STR() { return 'gtnmonkey_progress_str' }
 	static get PROGRESS_FINISHED_AT() { return 'gtnmonkey_progress_finished_at' }
