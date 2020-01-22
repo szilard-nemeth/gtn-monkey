@@ -121,4 +121,23 @@ class ScrapeProgress {
 	}
 }
 
-export { ScrapeSession };
+class Navigation {
+	static gotoNextPage(issues) {
+		changeLocation(issues[0])
+	}
+
+	static gotoOriginPage() {
+		changeLocation(Storage.getOriginPage())
+	}
+
+	static changeLocation(location) {
+		var origin = Storage.getOriginPage()
+		if (location !== origin) {
+			ScrapeSession.processNextPage()
+		}
+		printLog("Changing location to: " + location)
+		window.location.href = location
+	}
+}
+
+export { ScrapeSession, Navigation };

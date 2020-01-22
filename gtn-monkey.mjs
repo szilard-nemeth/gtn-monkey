@@ -3,7 +3,7 @@ console.log("Loaded gtn-monkey.js")
 import {printLog, printError} from './logging.mjs';
 import {showResultsButtonSelector, attrDisabled} from './common-constants.mjs';
 import {JiraUrlUtils, JiraIssueParser} from './jira.mjs';
-import {ScrapeSession} from './scrape-session.mjs';
+import {ScrapeSession, Navigation} from './scrape-session.mjs';
 import {Storage, GtnMonkeyDataStorage} from './storage.mjs';
 import * as Overlay from './overlay.mjs';
 import {Quanta} from './quanta.mjs';
@@ -26,7 +26,7 @@ export function findAllLinksFromJiraIssues() {
 		printLog("NO JIRA ISSUES FOUND IN CURRENT PAGE!")
 		return
 	}
-	gotoNextPage(Storage.getFoundJiraIssues())
+	Navigation.gotoNextPage(Storage.getFoundJiraIssues())
 }
 
 function onDocumentReady() {
@@ -91,10 +91,10 @@ function navigateToNextPageCallback() {
 
 	//Navigate to next page
 	if (issues.length > 0) {
-		gotoNextPage(issues)
+		Navigation.gotoNextPage(issues)
 	} else {
 		printLog("No more pages to process. Changing location to origin jira URL: " + Storage.getOriginPage())
-		gotoOriginPage()
+		Navigation.gotoOriginPage()
 	}
 }
 
@@ -107,23 +107,6 @@ export function storeFoundGTNLinksForJiraIssue(newLinks) {
 	var jiraIssue = JiraUrlUtils.getJiraName()
 	var jiraData = GtnMonkeyDataStorage.getStoredJiraDataForIssue(jiraIssue)
 	GtnMonkeyDataStorage.storeFoundGTNLinks(jiraIssue, jiraData, newLinks)
-}
-
-function gotoNextPage(issues) {
-	changeLocation(issues[0])
-}
-
-function gotoOriginPage() {
-	changeLocation(Storage.getOriginPage())
-}
-
-function changeLocation(location) {
-	var origin = Storage.getOriginPage()
-	if (location !== origin) {
-		ScrapeSession.processNextPage()
-	}
-	printLog("Changing location to: " + location)
-	window.location.href = location
 }
 
 //TODO move this to utils.mjs
