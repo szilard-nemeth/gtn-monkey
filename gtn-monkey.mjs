@@ -4,7 +4,7 @@ import {printLog, printError} from './logging.mjs';
 import {showResultsButtonSelector, attrDisabled} from './common-constants.mjs';
 import {JiraUrlUtils, JiraIssueParser} from './jira.mjs';
 import {ScrapeSession} from './scrape-session.mjs';
-import {Storage} from './storage.mjs';
+import {Storage, GtnMonkeyDataStorage} from './storage.mjs';
 import * as Overlay from './overlay.mjs';
 import {Quanta} from './quanta.mjs';
 
@@ -85,10 +85,10 @@ export function cleanupStorage() {
 	enableButton(showResultsButtonSelector, false)
 }
 
-export storeFoundGTNLinksForJiraIssue(newLinks) {
+export function storeFoundGTNLinksForJiraIssue(newLinks) {
 	var jiraIssue = JiraUrlUtils.getJiraName()
-	var jiraData = this.getStoredJiraDataForIssue(jiraIssue)
-	this.storeFoundGTNLinks(jiraIssue, jiraData, newLinks)
+	var jiraData = GtnMonkeyDataStorage.getStoredJiraDataForIssue(jiraIssue)
+	GtnMonkeyDataStorage.storeFoundGTNLinks(jiraIssue, jiraData, newLinks)
 }
 
 //TODO move this to utils.mjs

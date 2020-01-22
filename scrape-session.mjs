@@ -1,7 +1,6 @@
 import {GtnMonkeyDataStorage, StorageKeys} from './storage.mjs';
 import {JiraUrlUtils, JiraConstants} from './jira.mjs';
 import {printLog, printError} from './logging.mjs';
-import {Navigation} from './scrape-session.mjs';
 
 
 //TODO make Progress class to decouple progress
@@ -30,7 +29,7 @@ class ScrapeSession {
 	}
 	
 	static isInProgress() {
-		ScrapeProgress.isInProgress()
+		return ScrapeProgress.isInProgress()
 	}
 
 	//TODO should serialize progress
@@ -39,7 +38,7 @@ class ScrapeSession {
 	}
 
 	static getOverallProgress() {
-		ScrapeProgress.getOverallProgress()
+		return ScrapeProgress.getOverallProgress()
 	}
 
 	//private
@@ -49,16 +48,16 @@ class ScrapeSession {
 	}
 
 	static isFinished() {
-		ScrapeProgress.isFinished()
+		return ScrapeProgress.isFinished()
 	}
 
 	//TODO rename: isFinishedRecently
 	static isFinishedJustNow() {
-		ScrapeProgress.isFinishedJustNow()
+		return ScrapeProgress.isFinishedJustNow()
 	}
 
 	static isFinishedProcessing() {
-		return window.location.href == Storage.getOriginPage() && this.isInProgress()
+		return window.location.href == GtnMonkeyDataStorage.getOriginPage() && this.isInProgress()
 	}
 
 	//TODO should serialize progress
@@ -85,7 +84,7 @@ class ScrapeSession {
 		}
 	}
 
-	static getDataForJiraIssue() {
+	static getDataForJiraIssue(jiraIssue) {
 		return GtnMonkeyDataStorage.getStoredJiraDataForIssue(jiraIssue)
 	}
 
