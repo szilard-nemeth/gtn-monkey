@@ -2,11 +2,13 @@ console.log("Loaded gtn-monkey.js")
 
 import {printLog, printError} from './logging.mjs';
 import {showResultsButtonSelector, attrDisabled} from './common-constants.mjs';
-import {JiraUrlUtils, JiraIssueParser} from './jira.mjs';
-import {ScrapeSession} from './scrape-session.mjs';
-import {Storage, GtnMonkeyDataStorage} from './storage.mjs';
+import {JiraUrlUtils, JiraIssueParser, JiraConstants} from './jira.mjs';
+import {ScrapeSession, ScrapeProgress} from './scrape-session.mjs';
+import {Storage, GtnMonkeyDataStorage, StorageKeys} from './storage.mjs';
 import * as Overlay from './overlay.mjs';
 import {Quanta} from './quanta.mjs';
+
+export var SCRAPE_SESSION;
 
 //ENTRYPOINT: Start up the scraping process
 export function findAllLinksFromJiraIssues() {
@@ -16,13 +18,25 @@ export function findAllLinksFromJiraIssues() {
 	}
 
 	//TODO create new ScrapeSession object here, store it as a var
-	var foundIssues = ScrapeSession.start()
+	var jiraFilterName = myjQuery(JiraConstants.JIRA_FILTER_NAME_SELECTOR).text()
+	var foundIssues = ScrapeSession.start(jiraFilterName)
 	if (foundIssues) {
 		ScrapeSession.gotoNextPageAtStart()	
 	}
 }
 
 function onDocumentReady() {
+	//TODO workaround
+	if (ScrapeSession.progress == null) {
+		//TODO deserialize progress
+		var progress = Storage.deserializeObject(StorageKeys.PROGRESS_OBJ, ScrapeProgress)
+		if (progress != null) {
+			ScrapeSession.progress = progress	
+		} else {
+			ScrapeSession.progress = new ScrapeProgress()	
+		}
+	}
+
 	bindEventHandlers()
 	setButtonStates()
 	printLog("Executed document.ready() on page: " + window.location.href)
@@ -134,5 +148,6 @@ function showOverlay() {
 	}
 }
 //TODO deserialize all GTN monkey data here and store it into a global var so logging can access it!
+// SCRAPE_SESSION = new ScrapeSession()
 //Show overlay everytime a page loads, ASAP
 showOverlay()

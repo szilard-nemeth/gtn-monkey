@@ -1,5 +1,5 @@
-import {GtnMonkeyDataStorage, StorageKeys} from './storage.mjs';
-import {JiraUrlUtils, JiraConstants} from './jira.mjs';
+import {GtnMonkeyDataStorage, Storage, StorageKeys} from './storage.mjs';
+import {JiraUrlUtils} from './jira.mjs';
 import {printLog, printError} from './logging.mjs';
 
 
@@ -10,10 +10,15 @@ export const PROGRESS_STARTED = "Started"
 
 //TODO make this an object and only store state through instance of this class
 class ScrapeSession {
+	constructor() {    
+    	this.progress = new ScrapeProgress();
+  	}
 
-	static start() {
-		ScrapeProgress.storeProgress(PROGRESS_STARTED)
-		ScrapeSession.storeOriginPage()
+	static start(jiraFilterName) {
+		this.progress = new ScrapeProgress();
+		this.progress.storeProgress(PROGRESS_STARTED)
+		GtnMonkeyDataStorage.storeFilterName(jiraFilterName)
+		GtnMonkeyDataStorage.storeOriginPage(window.location.href)
 
 		var issues = GtnMonkeyDataStorage.storeFoundJiraIssues()
 		if (!issues || issues.length == 0) {
@@ -23,22 +28,22 @@ class ScrapeSession {
 		return true
 	}
 
-	//TODO should serialize progress
 	static processNextPage() {
-		ScrapeProgress.storeProgress()	
+		this.progress.storeProgress()
+		Storage.storeObject(StorageKeys.PROGRESS_OBJ, this.progress)
 	}
 	
 	static isInProgress() {
-		return ScrapeProgress.isInProgress()
+		return this.progress.isInProgress()
 	}
 
-	//TODO should serialize progress
 	static stop() {
-		ScrapeProgress.stopProgress()
+		this.progress.stopProgress()
+		Storage.storeObject(StorageKeys.PROGRESS_OBJ, this.progress)
 	}
 
 	static getOverallProgress() {
-		return ScrapeProgress.getOverallProgress()
+		return this.progress.getOverallProgress()
 	}
 
 	//private
@@ -48,12 +53,12 @@ class ScrapeSession {
 	}
 
 	static isFinished() {
-		return ScrapeProgress.isFinished()
+		return this.progress.isFinished()
 	}
 
 	//TODO rename: isFinishedRecently
 	static isFinishedJustNow() {
-		return ScrapeProgress.isFinishedJustNow()
+		return this.progress.isFinishedJustNow()
 	}
 
 	static isFinishedProcessing() {
@@ -96,9 +101,14 @@ class ScrapeSession {
 }
 
 class ScrapeProgress {
-	static storeProgress(state) {
+	//Can be STARTED, FINISHED or a number (e.g. 2) indicating number of processed items
+	state = null;
+	progressStr = "";
+	finishedTime = null;
+
+	storeProgress(state) {
 		if (state != undefined && state != null) {
-			window.localStorage.setItem(StorageKeys.PROGRESS, state)
+			this.state = state
 		}
 
 		if (state == PROGRESS_STARTED) {
@@ -106,65 +116,63 @@ class ScrapeProgress {
 			return
 		}
 
-		var numberOfFoundIssues = GtnMonkeyDataStorage.getNumberOfFoundJiraIssues()
-		var prevProgress = window.localStorage.getItem(StorageKeys.PROGRESS)
+		var prevProgress = this.state
 
-		var progress
+		var progressCounter
 		if (prevProgress == null || prevProgress === PROGRESS_STARTED) {
-			progress = 1
+			progressCounter = 1
 		} else {
-			progress = parseInt(prevProgress, 10) + 1
+			progressCounter = parseInt(prevProgress, 10) + 1
 		}
 
 		var jiraIssue = JiraUrlUtils.getJiraName()
-		window.localStorage.setItem(StorageKeys.PROGRESS, progress)
-		window.localStorage.setItem(StorageKeys.PROGRESS_STR, `${progress} / ${numberOfFoundIssues} (Jira: ${jiraIssue})`)
-		printLog("Stored progress: " + progress)
+		var numberOfFoundIssues = GtnMonkeyDataStorage.getNumberOfFoundJiraIssues()
+		this.state = progressCounter
+		this.progressStr = `${progressCounter} / ${numberOfFoundIssues} (Jira: ${jiraIssue})`
+		printLog("Saved progress: " + progressCounter)
 	}
 
-	static isInProgress() {
-		var progress = window.localStorage.getItem(StorageKeys.PROGRESS)
-		if (progress == null || progress === PROGRESS_FINISHED) {
+	isInProgress() {
+		if (this.state == null || this.state === PROGRESS_FINISHED) {
 			return false
 		}
 		return true
 	}
 
-	static stopProgress() {
-		window.localStorage.setItem(StorageKeys.PROGRESS, PROGRESS_FINISHED)
-		window.localStorage.setItem(StorageKeys.PROGRESS_STR, PROGRESS_FINISHED)
-		window.localStorage.setItem(StorageKeys.PROGRESS_FINISHED_AT, Date.now())
+	stopProgress() {
+		this.state = PROGRESS_FINISHED
+		//TODO add to progressStr: how many items were processed in this session, e.g. (24/24)
+		this.progressStr = PROGRESS_FINISHED
+		this.finishedTime = Date.now()
 		printLog("Stopped progress")
 	}
 
-	static getOverallProgress() {
-		var overallProgress = window.localStorage.getItem(StorageKeys.PROGRESS_STR)
-		if (overallProgress && overallProgress != null) {
-			if (overallProgress === PROGRESS_FINISHED) {
+	getOverallProgress() {
+		if (this.progressStr && this.progressStr != null) {
+			if (this.progressStr === PROGRESS_FINISHED) {
 				return `Finished processing Jira filter '${GtnMonkeyDataStorage.getFilterName()}' with ${GtnMonkeyDataStorage.getNumberOfFoundJiraIssues()} items`
 			} else {
-				return `Processing Jira filter '${GtnMonkeyDataStorage.getFilterName()}': ${overallProgress}`		
+				return `Processing Jira filter '${GtnMonkeyDataStorage.getFilterName()}': ${this.progressStr}`		
 			}
 		}
 		return "Unknown progress"
 	}
 
-	static isFinished() {
-		var progress = window.localStorage.getItem(StorageKeys.PROGRESS)
-		if (progress === PROGRESS_FINISHED) {
+	isFinished() {
+		if (this.state === PROGRESS_FINISHED) {
 			return true
 		}
 		return false
 	}
 
 	//TODO rename: isFinishedRecently
-	static isFinishedJustNow() {
+	isFinishedJustNow() {
 		if (!this.isFinished()) {
 			return false
 		}
-		var finishedTime = window.localStorage.getItem(StorageKeys.PROGRESS_FINISHED_AT)
+
 		var now = Date.now()
-		if (now - finishedTime <= 10000) {
+		if (now - this.finishedTime <= 10000) {
 			return true
 		}
 		return false
@@ -182,4 +190,4 @@ class Navigation {
 	}
 }
 
-export { ScrapeSession, Navigation };
+export { ScrapeSession, Navigation, ScrapeProgress };

@@ -2,11 +2,16 @@ import {printLog, printError} from './logging.mjs';
 import {JiraUrlUtils, JiraIssueParser} from './jira.mjs';
 import * as MapUtils from './maputils.mjs';
 import {gtnQueryParam} from './common-constants.mjs';
+import {ScrapeProgress} from './scrape-session.mjs';
 
 class StorageKeys {
+	//TODO remove legacy keys: PROGRESS, PROGRESS_STR, PROGRESS_FINISHED_AT
 	static get PROGRESS() { return 'gtnmonkey_progress' }
 	static get PROGRESS_STR() { return 'gtnmonkey_progress_str' }
 	static get PROGRESS_FINISHED_AT() { return 'gtnmonkey_progress_finished_at' }
+
+	static get PROGRESS_OBJ() { return 'gtnmonkey_progress_obj' }
+
 	static get RESULT() { return 'gtnmonkey_result' }
 	static get ORIGIN_PAGE() { return 'gtnmonkey_originPage' }
 	static get JIRAISSUES() { return 'gtnmonkey_jiraissues' }
@@ -61,13 +66,13 @@ class JiraData {
 
 //TODO create classes: GtnMonkeyDataStorage, GtnMonkeyProgressStorage, keep Storage for generic functions like cleanup
 class Storage {
+
 	static cleanup() {
 		this.deleteLocalStorageItem(StorageKeys.RESULT)
 		this.deleteLocalStorageItem(StorageKeys.ORIGIN_PAGE)
 		this.deleteLocalStorageItem(StorageKeys.JIRAISSUES)
 		this.deleteLocalStorageItem(StorageKeys.NUMBER_OF_JIRA_ISSUES)
-		this.deleteLocalStorageItem(StorageKeys.PROGRESS)
-		this.deleteLocalStorageItem(StorageKeys.PROGRESS_STR)
+		this.deleteLocalStorageItem(StorageKeys.PROGRESS_OBJ)
 	}
 
 	static deleteLocalStorageItem(key) {
@@ -75,13 +80,14 @@ class Storage {
 		window.localStorage.removeItem(key)
 	}
 
-	//unused
-	static hasAnyData() {
-		var progress = window.localStorage.getItem(StorageKeys.PROGRESS)
-		if (progress == undefined || progress == null) {
-			return false
-		}
-		return true
+	static storeObject(key, obj) {
+		window.localStorage.setItem(key, JSON.stringify(obj))
+	}
+
+	static deserializeObject(key, clazz) {
+		var parsedObj = JSON.parse(window.localStorage.getItem(key))
+		var instance = new (clazz)
+		return Object.assign(instance, parsedObj)
 	}
 }
 
