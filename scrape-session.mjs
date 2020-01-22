@@ -7,12 +7,45 @@ import {printLog, printError} from './logging.mjs';
 export const PROGRESS_FINISHED = "Finished"
 export const PROGRESS_STARTED = "Started"
 
+//TODO make this an object and only store state through instance of this class
 class ScrapeSession {
 
 	static start() {
-		this.storeProgress(PROGRESS_STARTED)
+		ScrapeProgress.storeProgress(PROGRESS_STARTED)
 	}
 
+	static processNextPage() {
+		ScrapeProgress.storeProgress()	
+	}
+	
+	static isInProgress() {
+		ScrapeProgress.isInProgress()
+	}
+
+	static stop() {
+		ScrapeProgress.stopProgress()
+	}
+
+	static getOverallProgress() {
+		ScrapeProgress.getOverallProgress()
+	}
+
+	static storeOriginPage() {
+		Storage.storeFilterName(myjQuery(JiraConstants.JIRA_FILTER_NAME_SELECTOR).text())
+		Storage.storeOriginPage(window.location.href)
+	}
+
+	static isFinished() {
+		ScrapeProgress.isFinished()
+	}
+
+	//TODO rename: isFinishedRecently
+	static isFinishedJustNow() {
+		ScrapeProgress.isFinishedJustNow()
+	}
+}
+
+class ScrapeProgress {
 	static storeProgress(state) {
 		if (state != undefined && state != null) {
 			window.localStorage.setItem(StorageKeys.PROGRESS, state)
@@ -38,7 +71,7 @@ class ScrapeSession {
 		window.localStorage.setItem(StorageKeys.PROGRESS_STR, `${progress} / ${numberOfFoundIssues} (Jira: ${jiraIssue})`)
 		printLog("Stored progress: " + progress)
 	}
-	
+
 	static isInProgress() {
 		var progress = window.localStorage.getItem(StorageKeys.PROGRESS)
 		if (progress == null || progress === PROGRESS_FINISHED) {
@@ -46,7 +79,6 @@ class ScrapeSession {
 		}
 		return true
 	}
-
 
 	static stopProgress() {
 		window.localStorage.setItem(StorageKeys.PROGRESS, PROGRESS_FINISHED)
@@ -65,11 +97,6 @@ class ScrapeSession {
 			}
 		}
 		return "Unknown progress"
-	}
-
-	static storeOriginPage() {
-		Storage.storeFilterName(myjQuery(JiraConstants.JIRA_FILTER_NAME_SELECTOR).text())
-		Storage.storeOriginPage(window.location.href)
 	}
 
 	static isFinished() {

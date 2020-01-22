@@ -176,6 +176,7 @@ class GtnMonkeyDataStorage {
 	static storeFoundJiraIssues(jiraIssues) {
 		var issueLinks
 		if (jiraIssues === undefined) {
+			//initial run
 			issueLinks = myjQuery(jiraIssuesOnFilterPageSelector).map(function() {
 				return JiraUrlUtils.getServerPrefixedUrl(myjQuery(this).attr('href'))
 			}).toArray();

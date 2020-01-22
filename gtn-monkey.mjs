@@ -44,7 +44,7 @@ function onDocumentReady() {
 		} else if (location == Storage.getOriginPage() && ScrapeSession.isInProgress()) {
 			//We got back to the origin page
 			//Let's show final results: showResultsOverlay should be executed as progress is finished
-			ScrapeSession.stopProgress()
+			ScrapeSession.stop()
 			checkIfQuantaLinksAreAccessible()
 		} else {
 			console.error("window.location.href != issues[0]. current page: " + window.location.href + " issues[0]: " + issues[0])
@@ -63,7 +63,7 @@ function bindEventHandlers() {
 }
 
 function setButtonStates() {
-	//TODO this should only depend on if any results are stored in localstorage, not ScrapeSession
+	//TODO this should only depend on if any results are stored in Storage, not ScrapeSession
 	if (ScrapeSession.isFinished()) {
 		enableButton(showResultsButtonSelector, true)
 	} else {
@@ -86,7 +86,7 @@ function navigateToNextPageCallback() {
 	var issues = Storage.getFoundJiraIssues()
 	var parsedPage = issues.shift()
 	printLog("Parsed GTN links from current page")
-	//store modified jira issues array to localStorage so next execution of onDocumentReady() picks up next page
+	//store modified jira issues array to Storage so next execution of onDocumentReady() picks up next page
 	GtnMonkeyDataStorage.storeFoundJiraIssues(issues)
 
 	//Navigate to next page
@@ -120,7 +120,7 @@ function gotoOriginPage() {
 function changeLocation(location) {
 	var origin = Storage.getOriginPage()
 	if (location !== origin) {
-		ScrapeSession.storeProgress()
+		ScrapeSession.processNextPage()
 	}
 	printLog("Changing location to: " + location)
 	window.location.href = location
