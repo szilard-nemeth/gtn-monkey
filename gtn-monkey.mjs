@@ -85,21 +85,15 @@ export function cleanupStorage() {
 }
 
 export storeFoundGTNLinksForJiraIssue(newLinks) {
-		var jiraIssue = JiraUrlUtils.getJiraName()
-		var jiraData = this.getStoredJiraDataForIssue(jiraIssue)
-		this.storeFoundGTNLinks(jiraIssue, jiraData, newLinks)
-	}
+	var jiraIssue = JiraUrlUtils.getJiraName()
+	var jiraData = this.getStoredJiraDataForIssue(jiraIssue)
+	this.storeFoundGTNLinks(jiraIssue, jiraData, newLinks)
+}
 
 //TODO move this to utils.mjs
 function isFunction(functionToCheck) {
 	return functionToCheck && {}.toString.call(functionToCheck) === '[object Function]';
 }
-
-//===============================
-//On page ready
-myjQuery(document).ready(function() {
-	onDocumentReady()
-});
 
 function addResultsToTable(jiraData) {
 	Overlay.appendRowToResultTable(jiraData)
@@ -123,9 +117,20 @@ function copyText(str) {
 	document.body.removeChild(el);
 }
 
-var numberOfFoundIssues = GtnMonkeyDataStorage.getNumberOfFoundJiraIssues()
-var allJiraData = GtnMonkeyDataStorage.deserializeAllJiraData()
-Overlay.renderResults(numberOfFoundIssues, allJiraData)
-if (ScrapeSession.isInProgress() || ScrapeSession.isFinishedJustNow()) {
-	Overlay.showResults()
+
+//==============================================================
+//On page ready
+myjQuery(document).ready(function() {
+	onDocumentReady()
+});
+
+function showOverlay() {
+	var numberOfFoundIssues = GtnMonkeyDataStorage.getNumberOfFoundJiraIssues()
+	var allJiraData = GtnMonkeyDataStorage.deserializeAllJiraData()
+	Overlay.renderResults(numberOfFoundIssues, allJiraData)
+	if (ScrapeSession.isInProgress() || ScrapeSession.isFinishedJustNow()) {
+		Overlay.showResults()
+	}
 }
+//Show overlay everytime a page loads, ASAP
+showOverlay()
