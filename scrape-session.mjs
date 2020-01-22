@@ -24,6 +24,7 @@ class ScrapeSession {
 		return true
 	}
 
+	//TODO should serialize progress
 	static processNextPage() {
 		ScrapeProgress.storeProgress()	
 	}
@@ -32,6 +33,7 @@ class ScrapeSession {
 		ScrapeProgress.isInProgress()
 	}
 
+	//TODO should serialize progress
 	static stop() {
 		ScrapeProgress.stopProgress()
 	}
@@ -59,10 +61,12 @@ class ScrapeSession {
 		return window.location.href == Storage.getOriginPage() && this.isInProgress()
 	}
 
+	//TODO should serialize progress
 	static gotoNextPageAtStart() {
 		Navigation.navigate(GtnMonkeyDataStorage.getFoundJiraIssues()[0])
 	}
 
+	//TODO should serialize progress
 	static gotoNextPageWhileScraping(page) {
 		//TODO no need to re-store data, don't delete source issue links array, just store current index!
 		var issues = GtnMonkeyDataStorage.getFoundJiraIssues()

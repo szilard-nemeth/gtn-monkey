@@ -15,6 +15,7 @@ export function findAllLinksFromJiraIssues() {
 		cleanupStorage()
 	}
 
+	//TODO create new ScrapeSession object here, store it as a var
 	var foundIssues = ScrapeSession.start()
 	if (foundIssues) {
 		ScrapeSession.gotoNextPageAtStart()	
@@ -132,5 +133,6 @@ function showOverlay() {
 		Overlay.showResults()
 	}
 }
+//TODO deserialize all GTN monkey data here and store it into a global var so logging can access it!
 //Show overlay everytime a page loads, ASAP
 showOverlay()
