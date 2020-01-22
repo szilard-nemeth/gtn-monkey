@@ -49,7 +49,7 @@ class ScrapeSession {
 	}
 
 	static gotoNextPageAtStart() {
-		Navigation.gotoNextPage(Storage.getFoundJiraIssues()[0])
+		Navigation.navigate(Storage.getFoundJiraIssues()[0])
 	}
 
 	static gotoNextPageWhileScraping(page) {
@@ -61,10 +61,11 @@ class ScrapeSession {
 
 		//Navigate to next page
 		if (issues.length > 0) {
-			Navigation.gotoNextPage(issues[0])
+			Navigation.navigate(issues[0])
 		} else {
-			printLog("No more pages to process. Changing location to origin jira URL: " + Storage.getOriginPage())
-			Navigation.gotoOriginPage()
+			var originPage = Storage.getOriginPage()
+			printLog("No more pages to process. Changing location to origin jira URL: " + originPage)
+			Navigation.navigate(originPage)
 		}
 	}
 }
@@ -146,16 +147,7 @@ class ScrapeProgress {
 }
 
 class Navigation {
-	static gotoNextPage(pageURL) {
-		changeLocation(pageURL)
-	}
-
-	static gotoOriginPage() {
-		changeLocation(Storage.getOriginPage())
-	}
-
-	//private
-	static changeLocation(location) {
+	static navigate(location) {
 		var origin = Storage.getOriginPage()
 		if (location !== origin) {
 			ScrapeSession.processNextPage()
