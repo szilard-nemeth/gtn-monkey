@@ -228,6 +228,12 @@ class GtnMonkeyDataStorage {
 			return jiraData
 		})
 	}
+
+	static storeFoundGTNLinksForJiraIssue(newLinks) {
+		var jiraIssue = JiraUrlUtils.getJiraName()
+		var jiraData = this.getStoredJiraDataForIssue(jiraIssue)
+		this.storeFoundGTNLinks(jiraIssue, jiraData, newLinks)
+	}
 }
 
 export {Storage, StorageKeys, GtnMonkeyDataStorage};

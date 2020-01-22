@@ -1,5 +1,5 @@
 import {printLog, printError} from './logging.mjs';
-import {storeFoundGTNLinksForJiraIssue} from './gtn-monkey.mjs';
+import {GtnMonkeyDataStorage} from './storage.mjs';
 import {LinkUtils, ElementUtils} from './utils.mjs';
 import {gtnQueryParam} from './common-constants.mjs';
 
@@ -63,7 +63,7 @@ class JiraIssueParser {
 			var links = LinkUtils.findLinksInHtml(myjQuery(this).html(), gtnQueryParam)
 
 			if (links == null) {
-				storeFoundGTNLinksForJiraIssue([])
+				GtnMonkeyDataStorage.storeFoundGTNLinksForJiraIssue([])
 			} else {
 				if (links.length > 0) {
 					allLinks = allLinks.concat(links)
@@ -71,7 +71,7 @@ class JiraIssueParser {
 			}
 	 	});
 
-		storeFoundGTNLinksForJiraIssue(allLinks)
+		GtnMonkeyDataStorage.storeFoundGTNLinksForJiraIssue(allLinks)
 	}
 
 	static waitForCommentsLoaded(functionsToCall) {
@@ -82,9 +82,9 @@ class JiraIssueParser {
 		var description = myjQuery(descriptionSelector).html()
 		var links = LinkUtils.findLinksInHtml(description, gtnQueryParam)
 		if (links != null) {
-			storeFoundGTNLinksForJiraIssue(links)
+			GtnMonkeyDataStorage.storeFoundGTNLinksForJiraIssue(links)
 		} else {
-			storeFoundGTNLinksForJiraIssue([])
+			GtnMonkeyDataStorage.storeFoundGTNLinksForJiraIssue([])
 		}
 	}
 }

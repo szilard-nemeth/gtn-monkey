@@ -84,12 +84,6 @@ export function cleanupStorage() {
 	enableButton(showResultsButtonSelector, false)
 }
 
-export function storeFoundGTNLinksForJiraIssue(newLinks) {
-	var jiraIssue = JiraUrlUtils.getJiraName()
-	var jiraData = GtnMonkeyDataStorage.getStoredJiraDataForIssue(jiraIssue)
-	GtnMonkeyDataStorage.storeFoundGTNLinks(jiraIssue, jiraData, newLinks)
-}
-
 //TODO move this to utils.mjs
 function isFunction(functionToCheck) {
 	return functionToCheck && {}.toString.call(functionToCheck) === '[object Function]';
