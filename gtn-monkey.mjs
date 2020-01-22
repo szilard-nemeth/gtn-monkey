@@ -4,7 +4,7 @@ import {printLog, printError} from './logging.mjs';
 import {showResultsButtonSelector, attrDisabled} from './common-constants.mjs';
 import {JiraUrlUtils, JiraIssueParser} from './jira.mjs';
 import {ScrapeSession} from './scrape-session.mjs';
-import {Storage, GtnMonkeyDataStorage} from './storage.mjs';
+import {Storage} from './storage.mjs';
 import * as Overlay from './overlay.mjs';
 import {Quanta} from './quanta.mjs';
 
@@ -27,8 +27,7 @@ function onDocumentReady() {
 	printLog("Executed document.ready() on page: " + window.location.href)
 
 	if (ScrapeSession.isInProgress()) {
-		var issues = Storage.getFoundJiraIssues()
-		printLog("Retrieved jira issues from storage: " + issues)
+		var issues = ScrapeSession.getDataForJiraIssues()
 
 		//double-check URL
 		if (issues && issues.length > 0 && window.location.href === issues[0]) {
@@ -74,8 +73,9 @@ export function showResultsOverlay() {
 }
 
 function navigateToNextPageCallback() {
-	//TODO no need to re-store data, don't delete source issue links array, just store current index!
-	addResultsToTable()
+	var jiraIssue = JiraUrlUtils.getJiraName()
+	var jiraData = ScrapeSession.getDataForJiraIssue(jiraIssue)
+	addResultsToTable(jiraData)
 	ScrapeSession.gotoNextPageWhileScraping()
 }
 
@@ -95,9 +95,7 @@ myjQuery(document).ready(function() {
 	onDocumentReady()
 });
 
-function addResultsToTable() {
-	var jiraIssue = JiraUrlUtils.getJiraName()
-	var jiraData = GtnMonkeyDataStorage.getStoredJiraDataForIssue(jiraIssue)
+function addResultsToTable(jiraData) {
 	Overlay.appendRowToResultTable(jiraData)
 }
 

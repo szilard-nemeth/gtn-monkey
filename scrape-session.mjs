@@ -60,6 +60,7 @@ class ScrapeSession {
 	}
 
 	static gotoNextPageWhileScraping(page) {
+		//TODO no need to re-store data, don't delete source issue links array, just store current index!
 		var issues = Storage.getFoundJiraIssues()
 		var parsedPage = issues.shift()
 		printLog("Parsed GTN links from current page")
@@ -74,6 +75,16 @@ class ScrapeSession {
 			printLog("No more pages to process. Changing location to origin jira URL: " + originPage)
 			Navigation.navigate(originPage)
 		}
+	}
+
+	static getDataForJiraIssue() {
+		return GtnMonkeyDataStorage.getStoredJiraDataForIssue(jiraIssue)
+	}
+
+	static getDataForJiraIssues() {
+		var issues = Storage.getFoundJiraIssues()
+		printLog("Retrieved jira issues from storage: " + issues)
+		return issues
 	}
 }
 
