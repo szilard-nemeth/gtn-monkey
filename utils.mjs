@@ -1,5 +1,4 @@
 import {printLog, printError} from './logging.mjs';
-import {GtnMonkeyDataStorage} from './storage.mjs';
 
 const colorLightGreen = "#76D7C4"
 const colorGrey = "#BFC9CA"

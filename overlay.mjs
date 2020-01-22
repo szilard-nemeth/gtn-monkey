@@ -2,7 +2,6 @@ import {showResultsButtonSelector, attrDisabled} from './common-constants.mjs';
 import {printLog, printError} from './logging.mjs';
 
 //TODO Remove these as dependencies later: Results should come from GTN-monkey.mjs
-import {GtnMonkeyDataStorage} from './storage.mjs';
 import {ScrapeSession} from './scrape-session.mjs';
 import * as GtnMonkey from './gtn-monkey.mjs';
 //End of TODO
@@ -19,7 +18,7 @@ const pageTitle = "GTN MONKEY"
 export const quantaTestLogParagraphIdPrefix = "quantatestlog"
 export const quantaBundleParagraphIdPrefix = "quantabundle"
 
-export function renderResults() {
+export function renderResults(numberOfFoundIssues, allJiraData) {
 	//TODO Results overlay should not depend on ScrapeSession.
 	//If we have anything in storage, should show the results overlay
 	
@@ -62,7 +61,7 @@ export function renderResults() {
 	document.querySelector('#' + validateQuantaLinksButtonId).addEventListener('click', GtnMonkey.checkIfQuantaLinksAreAccessible)
 	document.querySelector('#' + closeOverlayButtonId).addEventListener('click', closeResults)
 
-	showTable()
+	showTable(numberOfFoundIssues, allJiraData)
 	closeResults()
 }
 
@@ -81,9 +80,7 @@ export function showResults() {
 	}
 }
 
-function showTable() {
-	var numberOfFoundIssues = GtnMonkeyDataStorage.getNumberOfFoundJiraIssues()
-
+function showTable(numberOfFoundIssues, allJiraData) {
 
 	const markup = `
 	<div class="list-view">
@@ -127,7 +124,6 @@ function showTable() {
 	var table = myjQuery(markup)
 	table.appendTo(myjQuery('#' + gtnMonkeyDialogId))
 
-	var allJiraData = GtnMonkeyDataStorage.deserializeAllJiraData()
 	allJiraData.forEach(jd => {
 		appendRowToResultTable(jd)
 	})

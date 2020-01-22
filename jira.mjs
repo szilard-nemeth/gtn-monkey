@@ -1,7 +1,7 @@
 import {printLog, printError} from './logging.mjs';
-import {GtnMonkeyDataStorage} from './storage.mjs';
 import {LinkUtils, ElementUtils} from './utils.mjs';
 import {gtnQueryParam} from './common-constants.mjs';
+import {storeFoundGTNLinksForJiraIssue} from './gtn-monkey.mjs'
 
 //Jira-related / Jira-defined stuff: buttons, dialogs, elements
 const JIRA_SERVER_URL = "https://jira.cloudera.com"
@@ -46,6 +46,7 @@ class JiraUrlUtils {
 }
 
 class JiraIssueParser {
+	//TODO storeFoundGTNLinksForJiraIssue can be a callback
 	static parseGTNLinksFromPage(callback) {
 		printLog("Parsing GTN links from current page")
 		//Click on show more comments button
@@ -63,7 +64,7 @@ class JiraIssueParser {
 			var links = LinkUtils.findLinksInHtml(myjQuery(this).html(), gtnQueryParam)
 
 			if (links == null) {
-				GtnMonkeyDataStorage.storeFoundGTNLinksForJiraIssue([])
+				storeFoundGTNLinksForJiraIssue([])
 			} else {
 				if (links.length > 0) {
 					allLinks = allLinks.concat(links)
@@ -71,7 +72,7 @@ class JiraIssueParser {
 			}
 	 	});
 
-		GtnMonkeyDataStorage.storeFoundGTNLinksForJiraIssue(allLinks)
+		storeFoundGTNLinksForJiraIssue(allLinks)
 	}
 
 	static waitForCommentsLoaded(functionsToCall) {
@@ -82,9 +83,9 @@ class JiraIssueParser {
 		var description = myjQuery(descriptionSelector).html()
 		var links = LinkUtils.findLinksInHtml(description, gtnQueryParam)
 		if (links != null) {
-			GtnMonkeyDataStorage.storeFoundGTNLinksForJiraIssue(links)
+			storeFoundGTNLinksForJiraIssue(links)
 		} else {
-			GtnMonkeyDataStorage.storeFoundGTNLinksForJiraIssue([])
+			storeFoundGTNLinksForJiraIssue([])
 		}
 	}
 }

@@ -84,6 +84,12 @@ export function cleanupStorage() {
 	enableButton(showResultsButtonSelector, false)
 }
 
+export storeFoundGTNLinksForJiraIssue(newLinks) {
+		var jiraIssue = JiraUrlUtils.getJiraName()
+		var jiraData = this.getStoredJiraDataForIssue(jiraIssue)
+		this.storeFoundGTNLinks(jiraIssue, jiraData, newLinks)
+	}
+
 //TODO move this to utils.mjs
 function isFunction(functionToCheck) {
 	return functionToCheck && {}.toString.call(functionToCheck) === '[object Function]';
@@ -100,7 +106,8 @@ function addResultsToTable(jiraData) {
 }
 
 export function checkIfQuantaLinksAreAccessible() {
-	Quanta.checkLinks()
+	var allJiraData = GtnMonkeyDataStorage.deserializeAllJiraData()
+	Quanta.checkLinks(allJiraData)
 }
 
 //TODO move this to utils.mjs
@@ -116,7 +123,9 @@ function copyText(str) {
 	document.body.removeChild(el);
 }
 
-Overlay.renderResults()
+var numberOfFoundIssues = GtnMonkeyDataStorage.getNumberOfFoundJiraIssues()
+var allJiraData = GtnMonkeyDataStorage.deserializeAllJiraData()
+Overlay.renderResults(numberOfFoundIssues, allJiraData)
 if (ScrapeSession.isInProgress() || ScrapeSession.isFinishedJustNow()) {
 	Overlay.showResults()
 }

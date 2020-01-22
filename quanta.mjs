@@ -1,6 +1,5 @@
 import {RequestUtils, ElementUtils} from './utils.mjs';
 import {printLog, printError} from './logging.mjs';
-import {GtnMonkeyDataStorage} from './storage.mjs';
 
 //TODO can be removed later
 import * as Overlay from './overlay.mjs';
@@ -12,8 +11,7 @@ const urlFragmentDiagBundle = "DIAG_LOGS"
 const QUANTA_URL_VPN_CHECK = "https://quanta.infra.cloudera.com"
 
 class Quanta {
-	static checkLinks() {
-		var allJiraData = GtnMonkeyDataStorage.deserializeAllJiraData()
+	static checkLinks(allJiraData) {
 		RequestUtils.checkURL(CORS_ANYWHERE_SERVER_URL, () => { //successcallback
 
 			//Perform VPN check
