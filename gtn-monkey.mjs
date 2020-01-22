@@ -32,7 +32,7 @@ function onDocumentReady() {
 		//double-check URL
 		if (issues && issues.length > 0 && window.location.href === issues[0]) {
 			JiraIssueParser.parseGTNLinksFromPage(navigateToNextPageCallback)
-		} else if (location == Storage.getOriginPage() && ScrapeSession.isInProgress()) {
+		} else if (window.location.href == Storage.getOriginPage() && ScrapeSession.isInProgress()) {
 			//We got back to the origin page
 			//Let's show final results: showResultsOverlay should be executed as progress is finished
 			ScrapeSession.stop()
