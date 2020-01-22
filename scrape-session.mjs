@@ -1,4 +1,4 @@
-import {Storage, StorageKeys} from './storage.mjs';
+import {GtnMonkeyDataStorage, StorageKeys} from './storage.mjs';
 import {JiraUrlUtils, JiraConstants} from './jira.mjs';
 import {printLog, printError} from './logging.mjs';
 import {Navigation} from './scrape-session.mjs';
@@ -42,8 +42,8 @@ class ScrapeSession {
 
 	//private
 	static storeOriginPage() {
-		Storage.storeFilterName(myjQuery(JiraConstants.JIRA_FILTER_NAME_SELECTOR).text())
-		Storage.storeOriginPage(window.location.href)
+		GtnMonkeyDataStorage.storeFilterName(myjQuery(JiraConstants.JIRA_FILTER_NAME_SELECTOR).text())
+		GtnMonkeyDataStorage.storeOriginPage(window.location.href)
 	}
 
 	static isFinished() {
@@ -55,13 +55,17 @@ class ScrapeSession {
 		ScrapeProgress.isFinishedJustNow()
 	}
 
+	static isFinishedProcessing() {
+		return window.location.href == Storage.getOriginPage() && this.isInProgress()
+	}
+
 	static gotoNextPageAtStart() {
-		Navigation.navigate(Storage.getFoundJiraIssues()[0])
+		Navigation.navigate(GtnMonkeyDataStorage.getFoundJiraIssues()[0])
 	}
 
 	static gotoNextPageWhileScraping(page) {
 		//TODO no need to re-store data, don't delete source issue links array, just store current index!
-		var issues = Storage.getFoundJiraIssues()
+		var issues = GtnMonkeyDataStorage.getFoundJiraIssues()
 		var parsedPage = issues.shift()
 		printLog("Parsed GTN links from current page")
 		//store modified jira issues array to Storage so next execution of onDocumentReady() picks up next page
@@ -71,7 +75,7 @@ class ScrapeSession {
 		if (issues.length > 0) {
 			Navigation.navigate(issues[0])
 		} else {
-			var originPage = Storage.getOriginPage()
+			var originPage = GtnMonkeyDataStorage.getOriginPage()
 			printLog("No more pages to process. Changing location to origin jira URL: " + originPage)
 			Navigation.navigate(originPage)
 		}
@@ -82,7 +86,7 @@ class ScrapeSession {
 	}
 
 	static getDataForJiraIssues() {
-		var issues = Storage.getFoundJiraIssues()
+		var issues = GtnMonkeyDataStorage.getFoundJiraIssues()
 		printLog("Retrieved jira issues from storage: " + issues)
 		return issues
 	}
@@ -99,7 +103,7 @@ class ScrapeProgress {
 			return
 		}
 
-		var numberOfFoundIssues = Storage.getNumberOfFoundJiraIssues()
+		var numberOfFoundIssues = GtnMonkeyDataStorage.getNumberOfFoundJiraIssues()
 		var prevProgress = window.localStorage.getItem(StorageKeys.PROGRESS)
 
 		var progress
@@ -134,9 +138,9 @@ class ScrapeProgress {
 		var overallProgress = window.localStorage.getItem(StorageKeys.PROGRESS_STR)
 		if (overallProgress && overallProgress != null) {
 			if (overallProgress === PROGRESS_FINISHED) {
-				return `Finished processing Jira filter '${Storage.getFilterName()}' with ${Storage.getNumberOfFoundJiraIssues()} items`
+				return `Finished processing Jira filter '${GtnMonkeyDataStorage.getFilterName()}' with ${GtnMonkeyDataStorage.getNumberOfFoundJiraIssues()} items`
 			} else {
-				return `Processing Jira filter '${Storage.getFilterName()}': ${overallProgress}`		
+				return `Processing Jira filter '${GtnMonkeyDataStorage.getFilterName()}': ${overallProgress}`		
 			}
 		}
 		return "Unknown progress"
@@ -166,7 +170,7 @@ class ScrapeProgress {
 
 class Navigation {
 	static navigate(location) {
-		var origin = Storage.getOriginPage()
+		var origin = GtnMonkeyDataStorage.getOriginPage()
 		if (location !== origin) {
 			ScrapeSession.processNextPage()
 		}

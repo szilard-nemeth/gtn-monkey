@@ -55,7 +55,7 @@ class JiraData {
     	});
     	return map;
 	}.bind(this), new Map());
-	console.log("LINKZ: ")
+	//console.log("LINKZ: ")
   }
 }
 
@@ -75,61 +75,7 @@ class Storage {
 		window.localStorage.removeItem(key)
 	}
 
-	static getNumberOfFoundJiraIssues() {
-		return window.localStorage.getItem(StorageKeys.NUMBER_OF_JIRA_ISSUES)
-	}
-
-	//private
-	static storeNumberOfJiraIssuesFound(issueLinksLength) {
-		window.localStorage.setItem(StorageKeys.NUMBER_OF_JIRA_ISSUES, issueLinksLength)	
-	}
-
-	static storeJiraIssuesFound(issueLinks) {
-		window.localStorage.setItem(StorageKeys.JIRAISSUES, JSON.stringify(issueLinks))
-	}
-
-	//private
-	static storeJiraDataObjs(allJiraData) {
-		var allJiraDataJson = JSON.stringify(allJiraData)
-		printLog("Storing modified array of JiraData: " + allJiraDataJson)
-		window.localStorage.setItem(StorageKeys.RESULT, allJiraDataJson);
-	}
-
-	static getFoundJiraIssues() {
-		return JSON.parse(localStorage.getItem(StorageKeys.JIRAISSUES) || "[]");
-	}
-
-	static getJiraDataObjs() {
-		var rawStr = window.localStorage.getItem(StorageKeys.RESULT)
-		var allJiraDataObj = JSON.parse(rawStr)
-		if (allJiraDataObj == undefined || allJiraDataObj == null) {
-			allJiraDataObj = []
-		}
-
-		return allJiraDataObj
-	}
-	
-	//used from ScrapeSession
-	static storeFilterName(filterName) {
-		window.localStorage.setItem(StorageKeys.JIRA_FILTER_NAME, filterName)	
-	}
-
-	//TODO used just in this class, how to mark it private
-	static getFilterName() {
-		return window.localStorage.getItem(StorageKeys.JIRA_FILTER_NAME)	
-	}
-
-	//used from ScrapeSession
-	static storeOriginPage(originPage) {
-		window.localStorage.setItem(StorageKeys.ORIGIN_PAGE, originPage)
-		printLog("Stored originPage: " + originPage)
-	}
-
-	static getOriginPage() {
-		return window.localStorage.getItem(StorageKeys.ORIGIN_PAGE)	
-	}
-
-	//currently unused
+	//unused
 	static hasAnyData() {
 		var progress = window.localStorage.getItem(StorageKeys.PROGRESS)
 		if (progress == undefined || progress == null) {
@@ -174,7 +120,7 @@ class GtnMonkeyDataStorage {
 		
 		//Convert Map before calling JSON.stringify as Maps are not serializable
 		allJiraData.forEach(jd => jd.links = MapUtils.strMapToObj(jd.links))
-		Storage.storeJiraDataObjs(allJiraData)
+		this.storeJiraDataObjs(allJiraData)
 	}
 
 	static storeFoundJiraIssues(jiraIssues) {
@@ -187,12 +133,12 @@ class GtnMonkeyDataStorage {
 			printLog("Found jira issues on origin (filter) page: " + issueLinks.toString())
 
 			//Only store number of jira issues if this is the initial run
-			Storage.storeNumberOfJiraIssuesFound(issueLinks.length)
+			this.storeNumberOfJiraIssuesFound(issueLinks.length)
 		} else {
 			printLog("Storing jira issues: " + jiraIssues.toString())
 			issueLinks = jiraIssues
 		}
-		Storage.storeJiraIssuesFound(issueLinks)
+		this.storeJiraIssuesFound(issueLinks)
 
 		return issueLinks
 	}
@@ -216,7 +162,7 @@ class GtnMonkeyDataStorage {
 	}
 
 	static deserializeAllJiraData() {
-		var allJiraDataObj = Storage.getJiraDataObjs();
+		var allJiraDataObj = this.getJiraDataObjs();
 		return allJiraDataObj.map(jiraData => {
 			jiraData = Object.assign(new JiraData(null, null, []), jiraData)
 			if (!(jiraData.links instanceof Map)) {
@@ -233,6 +179,65 @@ class GtnMonkeyDataStorage {
 		var jiraIssue = JiraUrlUtils.getJiraName()
 		var jiraData = this.getStoredJiraDataForIssue(jiraIssue)
 		this.storeFoundGTNLinks(jiraIssue, jiraData, newLinks)
+	}
+
+	//MOVED FROM STORAGE
+	//=====================
+	static getNumberOfFoundJiraIssues() {
+		return window.localStorage.getItem(StorageKeys.NUMBER_OF_JIRA_ISSUES)
+	}
+
+	//private
+	static storeNumberOfJiraIssuesFound(issueLinksLength) {
+		window.localStorage.setItem(StorageKeys.NUMBER_OF_JIRA_ISSUES, issueLinksLength)	
+	}
+
+	//private
+	static storeJiraIssuesFound(issueLinks) {
+		window.localStorage.setItem(StorageKeys.JIRAISSUES, JSON.stringify(issueLinks))
+	}
+
+	//private
+	static storeJiraDataObjs(allJiraData) {
+		var allJiraDataJson = JSON.stringify(allJiraData)
+		printLog("Storing modified array of JiraData: " + allJiraDataJson)
+		window.localStorage.setItem(StorageKeys.RESULT, allJiraDataJson);
+	}
+
+	//Used from ScrapeSession
+	static getFoundJiraIssues() {
+		return JSON.parse(localStorage.getItem(StorageKeys.JIRAISSUES) || "[]");
+	}
+
+	static getJiraDataObjs() {
+		var rawStr = window.localStorage.getItem(StorageKeys.RESULT)
+		var allJiraDataObj = JSON.parse(rawStr)
+		if (allJiraDataObj == undefined || allJiraDataObj == null) {
+			allJiraDataObj = []
+		}
+
+		return allJiraDataObj
+	}
+
+	//used from ScrapeSession
+	static storeFilterName(filterName) {
+		window.localStorage.setItem(StorageKeys.JIRA_FILTER_NAME, filterName)	
+	}
+
+	//used from ScrapeSession
+	static getFilterName() {
+		return window.localStorage.getItem(StorageKeys.JIRA_FILTER_NAME)	
+	}
+
+	//used from ScrapeSession
+	static storeOriginPage(originPage) {
+		window.localStorage.setItem(StorageKeys.ORIGIN_PAGE, originPage)
+		printLog("Stored originPage: " + originPage)
+	}
+
+	//used from ScrapeSession
+	static getOriginPage() {
+		return window.localStorage.getItem(StorageKeys.ORIGIN_PAGE)	
 	}
 }
 

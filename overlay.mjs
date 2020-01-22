@@ -2,7 +2,7 @@ import {showResultsButtonSelector, attrDisabled} from './common-constants.mjs';
 import {printLog, printError} from './logging.mjs';
 
 //TODO Remove these as dependencies later: Results should come from GTN-monkey.mjs
-import {Storage, GtnMonkeyDataStorage} from './storage.mjs';
+import {GtnMonkeyDataStorage} from './storage.mjs';
 import {ScrapeSession} from './scrape-session.mjs';
 import * as GtnMonkey from './gtn-monkey.mjs';
 //End of TODO
@@ -82,7 +82,7 @@ export function showResults() {
 }
 
 function showTable() {
-	var numberOfFoundIssues = Storage.getNumberOfFoundJiraIssues()
+	var numberOfFoundIssues = GtnMonkeyDataStorage.getNumberOfFoundJiraIssues()
 
 
 	const markup = `
