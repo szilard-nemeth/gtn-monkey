@@ -37,6 +37,11 @@ function onDocumentReady() {
 		}
 	}
 
+	//TODO deserialize all GTN monkey data here and store it into a global var so logging can access it!
+	// SCRAPE_SESSION = new ScrapeSession()
+	//Show overlay everytime a page loads
+	showOverlay()
+
 	bindEventHandlers()
 	setButtonStates()
 	printLog("Executed document.ready() on page: " + window.location.href)
@@ -132,13 +137,6 @@ function copyText(str) {
 	document.body.removeChild(el);
 }
 
-
-//==============================================================
-//On page ready
-myjQuery(document).ready(function() {
-	onDocumentReady()
-});
-
 function showOverlay() {
 	var numberOfFoundIssues = GtnMonkeyDataStorage.getNumberOfFoundJiraIssues()
 	var allJiraData = GtnMonkeyDataStorage.deserializeAllJiraData()
@@ -147,7 +145,10 @@ function showOverlay() {
 		Overlay.showResults()
 	}
 }
-//TODO deserialize all GTN monkey data here and store it into a global var so logging can access it!
-// SCRAPE_SESSION = new ScrapeSession()
-//Show overlay everytime a page loads, ASAP
-showOverlay()
+
+
+//==============================================================
+//On page ready
+myjQuery(document).ready(function() {
+	onDocumentReady()
+});
