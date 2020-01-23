@@ -4,7 +4,7 @@ import {printLog, printError} from './logging.mjs';
 import {showResultsButtonSelector, attrDisabled} from './common-constants.mjs';
 import {JiraUrlUtils, JiraIssueParser, JiraConstants} from './jira.mjs';
 import {ScrapeSession, ScrapeProgress} from './scrape-session.mjs';
-import {Storage, GtnMonkeyDataStorage, StorageKeys} from './storage.mjs';
+import {Storage, StorageKeys} from './storage.mjs';
 import * as Overlay from './overlay.mjs';
 import {Quanta} from './quanta.mjs';
 
@@ -12,38 +12,41 @@ export var SCRAPE_SESSION;
 
 //ENTRYPOINT: Start up the scraping process
 export function findAllLinksFromJiraIssues() {
-	if (JiraUrlUtils.isOriginPage() && !ScrapeSession.isInProgress() && ScrapeSession.isFinished()) {
+	if (JiraUrlUtils.isOriginPage() && !SCRAPE_SESSION.isInProgress() && SCRAPE_SESSION.isFinished()) {
 		printLog("We are on origin page, cleaning up storage...")
 		cleanupStorage()
 	}
 
 	//TODO create new ScrapeSession object here, store it as a var
 	var jiraFilterName = myjQuery(JiraConstants.JIRA_FILTER_NAME_SELECTOR).text()
-	var foundIssues = ScrapeSession.start(jiraFilterName)
+	var foundIssues = SCRAPE_SESSION.start(jiraFilterName)
 	if (foundIssues) {
-		ScrapeSession.gotoNextPageAtStart()	
+		SCRAPE_SESSION.gotoNextPageAtStart()	
 	}
 }
 
 function onDocumentReady() {
-	ScrapeSession.load()
 	//TODO deserialize all GTN monkey data here and store it into a global var so logging can access it!
-	// SCRAPE_SESSION = new ScrapeSession()
+	SCRAPE_SESSION = ScrapeSession.load()
 	showOverlay()
 	bindEventHandlers()
 	setButtonStates()
 	printLog("Executed document.ready() on page: " + window.location.href)
 
-	if (ScrapeSession.isInProgress()) {
-		var issues = ScrapeSession.getDataForJiraIssues()
+	if (SCRAPE_SESSION.isInProgress()) {
+		var issues = SCRAPE_SESSION.getDataForJiraIssues()
 
 		//double-check URL
 		if (issues && issues.length > 0 && window.location.href === issues[0]) {
 			JiraIssueParser.parseGTNLinksFromPage(navigateToNextPageCallback)
-		} else if (ScrapeSession.isFinishedProcessing()) {
+		} else if (SCRAPE_SESSION.isFinishedProcessing()) {
 			//We got back to the origin page
 			//Let's show final results: showResultsOverlay should be executed as progress is finished
-			ScrapeSession.stop()
+			SCRAPE_SESSION.stop()
+
+			//TODO
+			//Need to call showOverlay to show latest status
+			//showOverlay()
 			checkIfQuantaLinksAreAccessible()
 		} else {
 			console.error("window.location.href != issues[0]. current page: " + window.location.href + " issues[0]: " + issues[0])
@@ -63,7 +66,7 @@ function bindEventHandlers() {
 
 function setButtonStates() {
 	//TODO this should only depend on if any results are stored in Storage, not ScrapeSession
-	if (ScrapeSession.isFinished()) {
+	if (SCRAPE_SESSION.isFinished()) {
 		enableButton(showResultsButtonSelector, true)
 	} else {
 		enableButton(showResultsButtonSelector, false)
@@ -82,9 +85,9 @@ export function showResultsOverlay() {
 
 function navigateToNextPageCallback() {
 	var jiraIssue = JiraUrlUtils.getJiraName()
-	var jiraData = ScrapeSession.getDataForJiraIssue(jiraIssue)
+	var jiraData = SCRAPE_SESSION.getJiraDataForJiraIssue(jiraIssue)
 	addResultsToTable(jiraData)
-	ScrapeSession.gotoNextPageWhileScraping()
+	SCRAPE_SESSION.gotoNextPageWhileScraping()
 }
 
 export function cleanupStorage() {
@@ -94,8 +97,8 @@ export function cleanupStorage() {
 
 export function storeFoundGTNLinksForJiraIssue(newLinks) {
 	var jiraIssue = JiraUrlUtils.getJiraName()
-	var jiraData = GtnMonkeyDataStorage.getStoredJiraDataForIssue(jiraIssue)
-	GtnMonkeyDataStorage.storeFoundGTNLinks(jiraIssue, jiraData, newLinks)
+	var jiraData = SCRAPE_SESSION.getJiraDataForJiraIssue(jiraIssue)
+	SCRAPE_SESSION.storeFoundGTNLinks(jiraIssue, jiraData, newLinks)
 }
 
 //TODO move this to utils.mjs
@@ -108,7 +111,7 @@ function addResultsToTable(jiraData) {
 }
 
 export function checkIfQuantaLinksAreAccessible() {
-	var allJiraData = GtnMonkeyDataStorage.deserializeAllJiraData()
+	var allJiraData = SCRAPE_SESSION.getAllJiraData()
 	Quanta.checkLinks(allJiraData)
 }
 
@@ -126,10 +129,10 @@ function copyText(str) {
 }
 
 function showOverlay() {
-	var numberOfFoundIssues = GtnMonkeyDataStorage.getNumberOfFoundJiraIssues()
-	var allJiraData = GtnMonkeyDataStorage.deserializeAllJiraData()
+	var numberOfFoundIssues = SCRAPE_SESSION.getNumberOfFoundJiraIssues()
+	var allJiraData = SCRAPE_SESSION.getAllJiraData()
 	Overlay.renderResults(numberOfFoundIssues, allJiraData)
-	if (ScrapeSession.isInProgress() || ScrapeSession.isFinishedJustNow()) {
+	if (SCRAPE_SESSION.isInProgress() || SCRAPE_SESSION.isFinishedRecently()) {
 		Overlay.showResults()
 	}
 }

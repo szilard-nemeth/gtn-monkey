@@ -1,5 +1,6 @@
 import {JiraUrlUtils} from './jira.mjs';
 import {ScrapeSession} from './scrape-session.mjs';
+import * as GtnMonkey from './gtn-monkey.mjs';
 
 export function printLog(message, args) {
 	consoleMessage("log", message, args)
@@ -39,7 +40,10 @@ function getPage() {
 }
 
 function getProgress() {
-	return ScrapeSession.getOverallProgress()
+	if (GtnMonkey.SCRAPE_SESSION == null) {
+		return "unknown"
+	}
+	return GtnMonkey.SCRAPE_SESSION.getOverallProgress()
 }
 
 //TODO duplicated

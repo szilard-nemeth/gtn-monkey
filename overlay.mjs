@@ -25,7 +25,7 @@ export function renderResults(numberOfFoundIssues, allJiraData) {
 	var overlayDiv = myjQuery(`<div class="${overlayClass}" tabindex="0" aria-hidden="false"></div>`)
 	overlayDiv.appendTo(myjQuery('body'))
 
-	var progress = ScrapeSession.getOverallProgress()
+	var progress = GtnMonkey.SCRAPE_SESSION.getOverallProgress()
 	
 
 	var validateQuantaLinksButtonId = "validate-quanta-links"
@@ -65,7 +65,7 @@ export function renderResults(numberOfFoundIssues, allJiraData) {
 	closeResults()
 }
 
-function closeResults() {
+export function closeResults() {
 	myjQuery('#' + gtnMonkeyDialogId).hide();
 	myjQuery('.' + overlayClass).hide();
 }
