@@ -1,6 +1,7 @@
-import {GtnMonkeyDataStorage, Storage, StorageKeys} from './storage.mjs';
+import {Storage, StorageKeys, JiraData} from './storage.mjs';
 import {JiraUrlUtils} from './jira.mjs';
 import {printLog, printError} from './logging.mjs';
+import * as MapUtils from './maputils.mjs';
 
 
 //TODO make Progress class to decouple progress
@@ -9,98 +10,225 @@ export const PROGRESS_FINISHED = "Finished"
 export const PROGRESS_STARTED = "Started"
 
 //TODO make this an object and only store state through instance of this class
+//TODO remove all references to myjQuery
+
+//TODO move these to somewhere else? Feels like these belong to jira.mjs?
+const jiraSummarySelector = '#summary-val'
+const jiraIssuesOnFilterPageSelector = '.results-panel .issuekey a'
+
 class ScrapeSession {
-	constructor() {    
-    	this.progress = new ScrapeProgress();
-  	}
+	jiraFilter;
+	originPage;
+	progress;
+	jiraIssueLinks;
+	jiraData;
+	numberOfIssuesFound;
 
   	static load() {
-  		if (this.progress == null) {
+  		var session = Storage.deserializeObject(StorageKeys.SCRAPE_SESSION_OBJ, ScrapeSession)
+  		session.jiraData = this.deserializeJiraData(session.jiraData)
+
+  		if (session.progress == null) {
 			var progress = Storage.deserializeObject(StorageKeys.PROGRESS_OBJ, ScrapeProgress)
-			if (progress != null) {
-				this.progress = progress	
+			if (session.progress != null) {
+				session.progress = progress
 			} else {
-				this.progress = new ScrapeProgress()	
+				session.progress = new ScrapeProgress()	
 			}
+  		} else {
+  			session.progress = Object.assign(new ScrapeProgress(), session.progress)
   		}
+  		return session
   	}
 
-	static start(jiraFilterName) {
-		this.progress.storeProgress(PROGRESS_STARTED)
-		GtnMonkeyDataStorage.storeFilterName(jiraFilterName)
-		GtnMonkeyDataStorage.storeOriginPage(window.location.href)
-		var issues = GtnMonkeyDataStorage.storeFoundJiraIssues()
-		if (!issues || issues.length == 0) {
+	//private
+	static deserializeJiraData(jiraDataObjs) {
+		if (jiraDataObjs == undefined || jiraDataObjs == null) {
+			jiraDataObjs = []
+		}
+
+		return jiraDataObjs.map(jiraData => {
+			jiraData = Object.assign(new JiraData(null, null, []), jiraData)
+			if (!(jiraData.links instanceof Map)) {
+				// jiraData.links = new Map(Object.entries(jiraData.links));
+				jiraData.links = MapUtils.objToStrMap(jiraData.links)
+				//jiraData.links = JSON.parse(JSON.stringify(jiraData.links)).reduce((m, [key, val]) => m.set(key, val) , new Map());
+			}
+			printLog("Deserialized JiraData: " + JSON.stringify(jiraData))
+			return jiraData
+		})
+	}
+
+	serialize() {
+		//Convert Map before calling Storage method as Maps are not serializable
+		this.jiraData.forEach(jd => jd.links = MapUtils.strMapToObj(jd.links))
+		Storage.serializeObject(StorageKeys.SCRAPE_SESSION_OBJ, this)
+		//TODO seems like a hack: better to make a copy of this and serialize that, and keep scrapesession as it is (https://stackoverflow.com/questions/728360/how-do-i-correctly-clone-a-javascript-object)
+		this.jiraData = ScrapeSession.load().jiraData
+	}
+
+	start(jiraFilterName) {
+		this.jiraFilter = jiraFilterName
+		this.originPage = window.location.href
+		this.progress.storeProgress(PROGRESS_STARTED, this)
+
+		this.storeFoundJiraIssues()
+		if (!this.jiraIssueLinks || this.jiraIssueLinks.length == 0) {
 			printLog("NO JIRA ISSUES FOUND IN CURRENT PAGE!")
 			return false
 		}
+		printLog("Stored originPage: " + this.originPage)
 		return true
 	}
 
-	static processNextPage() {
-		this.progress.storeProgress()
-		Storage.storeObject(StorageKeys.PROGRESS_OBJ, this.progress)
+	storeFoundJiraIssues(jiraIssues) {
+		var issueLinks
+
+		//initial run
+		if (jiraIssues === undefined) {
+			issueLinks = myjQuery(jiraIssuesOnFilterPageSelector).map(function() {
+				return JiraUrlUtils.getServerPrefixedUrl(myjQuery(this).attr('href'))
+			}).toArray();
+			printLog("Found jira issues on origin (filter) page: " + issueLinks.toString())
+
+			//Only store number of jira issues if this is the initial run
+			this.numberOfIssuesFound = issueLinks.length
+		} else {
+			printLog("Storing jira issues: " + jiraIssues.toString())
+			issueLinks = jiraIssues
+		}
+		this.jiraIssueLinks = issueLinks
+	}
+
+	storeFoundGTNLinks(jiraIssue, jiraData, newLinks) {
+		if (jiraData.links.size > 0) {
+			printLog("Found data for '" + jiraIssue + "', appending data to it")
+		}
+		printLog("Found new GTN links: " + JSON.stringify(newLinks))
+		var linksArray = Array.from(jiraData.links.values()).map(val => val.quantaLink).concat(newLinks)
+		printLog("Updated links: " + JSON.stringify(linksArray))
+
+		var jiraTitle = myjQuery(jiraSummarySelector).text()
+		
+		//create JiraData
+		var data = new JiraData(jiraIssue, jiraTitle, linksArray)
+		printLog("Storing modified JiraData: " + JSON.stringify(data))
+
+		//update JiraData array and store it
+		var allJiraData = this.jiraData
+		var foundJiraData = this.getJiraData(allJiraData, jiraIssue, false)
+		if (foundJiraData != null) {
+			printLog(`Replacing found jiraData: ${JSON.stringify(foundJiraData)} with new JiraData: ${JSON.stringify(data)}`)
+			// var idx = allJiraData.indexOf(foundJiraData)
+			// allJiraData[idx] = data
+			foundJiraData.links = data.links
+		} else {
+			allJiraData.push(data)
+		}
+		
+		this.jiraData = allJiraData
+	}
+
+	processNextPage() {
+		this.progress.storeProgress(null, this)
+		this.serialize()
 	}
 	
-	static isInProgress() {
+	isInProgress() {
 		return this.progress.isInProgress()
 	}
 
-	static stop() {
+	stop() {
 		this.progress.stopProgress()
-		Storage.storeObject(StorageKeys.PROGRESS_OBJ, this.progress)
+		this.serialize()
 	}
 
-	static getOverallProgress() {
-		return this.progress.getOverallProgress()
+	getOverallProgress() {
+		return this.progress.getOverallProgress(this)
 	}
 
-	static isFinished() {
+	isFinished() {
 		return this.progress.isFinished()
 	}
 
-	//TODO rename: isFinishedRecently
-	static isFinishedJustNow() {
-		return this.progress.isFinishedJustNow()
+	isFinishedRecently() {
+		return this.progress.isFinishedRecently()
 	}
 
-	static isFinishedProcessing() {
-		return window.location.href == GtnMonkeyDataStorage.getOriginPage() && this.isInProgress()
+	isFinishedProcessing() {
+		return window.location.href == this.getOriginPage() && this.isInProgress()
 	}
 
-	//TODO should serialize progress
-	static gotoNextPageAtStart() {
-		Navigation.navigate(GtnMonkeyDataStorage.getFoundJiraIssues()[0])
+	gotoNextPageAtStart() {
+		Navigation.navigate(this.getFoundJiraIssues()[0], this)
 	}
 
-	//TODO should serialize progress
-	static gotoNextPageWhileScraping(page) {
+	gotoNextPageWhileScraping(page) {
 		//TODO no need to re-store data, don't delete source issue links array, just store current index!
-		var issues = GtnMonkeyDataStorage.getFoundJiraIssues()
+		var issues = this.getFoundJiraIssues()
 		var parsedPage = issues.shift()
 		printLog("Parsed GTN links from current page")
 		//store modified jira issues array to Storage so next execution of onDocumentReady() picks up next page
-		GtnMonkeyDataStorage.storeFoundJiraIssues(issues)
+		this.storeFoundJiraIssues(issues)
 
 		//Navigate to next page
 		if (issues.length > 0) {
-			Navigation.navigate(issues[0])
+			Navigation.navigate(issues[0], this)
 		} else {
-			var originPage = GtnMonkeyDataStorage.getOriginPage()
+			var originPage = this.getOriginPage()
 			printLog("No more pages to process. Changing location to origin jira URL: " + originPage)
-			Navigation.navigate(originPage)
+			Navigation.navigate(originPage, this)
 		}
 	}
 
-	static getDataForJiraIssue(jiraIssue) {
-		return GtnMonkeyDataStorage.getStoredJiraDataForIssue(jiraIssue)
-	}
-
-	static getDataForJiraIssues() {
-		var issues = GtnMonkeyDataStorage.getFoundJiraIssues()
+	getDataForJiraIssues() {
+		var issues = this.getFoundJiraIssues()
 		printLog("Retrieved jira issues from storage: " + issues)
 		return issues
 	}
+
+	//TODO these static methods are temporarily added
+	//used from ScrapeSession
+	getFilterName() {
+		return this.jiraFilter
+	}
+
+	getOriginPage() {
+		return this.originPage
+	}
+
+	getNumberOfFoundJiraIssues() {
+		return this.numberOfIssuesFound
+	}
+
+	getFoundJiraIssues() {
+		if (!this.jiraIssueLinks) {
+			return []
+		}
+		return this.jiraIssueLinks
+	}
+
+	getJiraDataForJiraIssue(jiraIssue) {
+		return this.getJiraData(this.jiraData, jiraIssue)
+	}
+
+	//TODO can be removed later (probably)
+	getJiraData(allJiraData, jiraIssueId, create = true) {
+		var found = allJiraData.find(jd => jd.id === jiraIssueId);
+		if (found != undefined && found != null) {
+			return found
+		}
+		if (create) {
+			return new JiraData(null, null, [])	
+		} else {
+			return null
+		}
+	}
+
+	getAllJiraData() {
+		return this.jiraData
+	}
+
 }
 
 class ScrapeProgress {
@@ -109,8 +237,8 @@ class ScrapeProgress {
 	progressStr = "";
 	finishedTime = null;
 
-	storeProgress(state) {
-		if (state != undefined && state != null) {
+	storeProgress(state, session) {
+		if (state != undefined || state != null) {
 			this.state = state
 		}
 
@@ -129,7 +257,7 @@ class ScrapeProgress {
 		}
 
 		var jiraIssue = JiraUrlUtils.getJiraName()
-		var numberOfFoundIssues = GtnMonkeyDataStorage.getNumberOfFoundJiraIssues()
+		var numberOfFoundIssues = session.getNumberOfFoundJiraIssues()
 		this.state = progressCounter
 		this.progressStr = `${progressCounter} / ${numberOfFoundIssues} (Jira: ${jiraIssue})`
 		printLog("Saved progress: " + progressCounter)
@@ -150,12 +278,12 @@ class ScrapeProgress {
 		printLog("Stopped progress")
 	}
 
-	getOverallProgress() {
+	getOverallProgress(session) {
 		if (this.progressStr && this.progressStr != null) {
 			if (this.progressStr === PROGRESS_FINISHED) {
-				return `Finished processing Jira filter '${GtnMonkeyDataStorage.getFilterName()}' with ${GtnMonkeyDataStorage.getNumberOfFoundJiraIssues()} items`
+				return `Finished processing Jira filter '${session.getFilterName()}' with ${session.getNumberOfFoundJiraIssues()} items`
 			} else {
-				return `Processing Jira filter '${GtnMonkeyDataStorage.getFilterName()}': ${this.progressStr}`		
+				return `Processing Jira filter '${session.getFilterName()}': ${this.progressStr}`		
 			}
 		}
 		return "Unknown progress"
@@ -168,8 +296,7 @@ class ScrapeProgress {
 		return false
 	}
 
-	//TODO rename: isFinishedRecently
-	isFinishedJustNow() {
+	isFinishedRecently() {
 		if (!this.isFinished()) {
 			return false
 		}
@@ -183,10 +310,10 @@ class ScrapeProgress {
 }
 
 class Navigation {
-	static navigate(location) {
-		var origin = GtnMonkeyDataStorage.getOriginPage()
+	static navigate(location, session) {
+		var origin = session.getOriginPage()
 		if (location !== origin) {
-			ScrapeSession.processNextPage()
+			session.processNextPage()
 		}
 		printLog("Changing location to: " + location)
 		window.location.href = location
