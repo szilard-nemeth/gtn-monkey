@@ -26,22 +26,10 @@ export function findAllLinksFromJiraIssues() {
 }
 
 function onDocumentReady() {
-	//TODO workaround
-	if (ScrapeSession.progress == null) {
-		//TODO deserialize progress
-		var progress = Storage.deserializeObject(StorageKeys.PROGRESS_OBJ, ScrapeProgress)
-		if (progress != null) {
-			ScrapeSession.progress = progress	
-		} else {
-			ScrapeSession.progress = new ScrapeProgress()	
-		}
-	}
-
+	ScrapeSession.load()
 	//TODO deserialize all GTN monkey data here and store it into a global var so logging can access it!
 	// SCRAPE_SESSION = new ScrapeSession()
-	//Show overlay everytime a page loads
 	showOverlay()
-
 	bindEventHandlers()
 	setButtonStates()
 	printLog("Executed document.ready() on page: " + window.location.href)

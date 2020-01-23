@@ -14,12 +14,21 @@ class ScrapeSession {
     	this.progress = new ScrapeProgress();
   	}
 
+  	static load() {
+  		if (this.progress == null) {
+			var progress = Storage.deserializeObject(StorageKeys.PROGRESS_OBJ, ScrapeProgress)
+			if (progress != null) {
+				this.progress = progress	
+			} else {
+				this.progress = new ScrapeProgress()	
+			}
+  		}
+  	}
+
 	static start(jiraFilterName) {
-		this.progress = new ScrapeProgress();
 		this.progress.storeProgress(PROGRESS_STARTED)
 		GtnMonkeyDataStorage.storeFilterName(jiraFilterName)
 		GtnMonkeyDataStorage.storeOriginPage(window.location.href)
-
 		var issues = GtnMonkeyDataStorage.storeFoundJiraIssues()
 		if (!issues || issues.length == 0) {
 			printLog("NO JIRA ISSUES FOUND IN CURRENT PAGE!")
