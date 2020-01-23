@@ -46,12 +46,6 @@ class ScrapeSession {
 		return this.progress.getOverallProgress()
 	}
 
-	//private
-	static storeOriginPage() {
-		GtnMonkeyDataStorage.storeFilterName(myjQuery(JiraConstants.JIRA_FILTER_NAME_SELECTOR).text())
-		GtnMonkeyDataStorage.storeOriginPage(window.location.href)
-	}
-
 	static isFinished() {
 		return this.progress.isFinished()
 	}
