@@ -26,7 +26,6 @@ export function findAllLinksFromJiraIssues() {
 }
 
 function onDocumentReady() {
-	//TODO deserialize all GTN monkey data here and store it into a global var so logging can access it!
 	SCRAPE_SESSION = ScrapeSession.load()
 	showOverlay()
 	bindEventHandlers()
