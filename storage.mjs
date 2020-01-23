@@ -144,6 +144,34 @@ class GtnMonkeyDataStorage {
 		return issueLinks
 	}
 
+	//private
+	static storeNumberOfJiraIssuesFound(issueLinksLength) {
+		window.localStorage.setItem(StorageKeys.NUMBER_OF_JIRA_ISSUES, issueLinksLength)	
+	}
+
+	//private
+	static storeJiraIssuesFound(issueLinks) {
+		window.localStorage.setItem(StorageKeys.JIRAISSUES, JSON.stringify(issueLinks))
+	}
+
+	//private
+	static storeJiraDataObjs(allJiraData) {
+		var allJiraDataJson = JSON.stringify(allJiraData)
+		printLog("Storing modified array of JiraData: " + allJiraDataJson)
+		window.localStorage.setItem(StorageKeys.RESULT, allJiraDataJson);
+	}
+
+	//used from ScrapeSession
+	static storeFilterName(filterName) {
+		window.localStorage.setItem(StorageKeys.JIRA_FILTER_NAME, filterName)	
+	}
+
+	//used from ScrapeSession
+	static storeOriginPage(originPage) {
+		window.localStorage.setItem(StorageKeys.ORIGIN_PAGE, originPage)
+		printLog("Stored originPage: " + originPage)
+	}
+
 	static getStoredJiraDataForIssue(jiraIssue) {
 		var allJiraData = this.deserializeAllJiraData()
 		return this.getJiraData(allJiraData, jiraIssue)
@@ -182,23 +210,6 @@ class GtnMonkeyDataStorage {
 		return window.localStorage.getItem(StorageKeys.NUMBER_OF_JIRA_ISSUES)
 	}
 
-	//private
-	static storeNumberOfJiraIssuesFound(issueLinksLength) {
-		window.localStorage.setItem(StorageKeys.NUMBER_OF_JIRA_ISSUES, issueLinksLength)	
-	}
-
-	//private
-	static storeJiraIssuesFound(issueLinks) {
-		window.localStorage.setItem(StorageKeys.JIRAISSUES, JSON.stringify(issueLinks))
-	}
-
-	//private
-	static storeJiraDataObjs(allJiraData) {
-		var allJiraDataJson = JSON.stringify(allJiraData)
-		printLog("Storing modified array of JiraData: " + allJiraDataJson)
-		window.localStorage.setItem(StorageKeys.RESULT, allJiraDataJson);
-	}
-
 	//Used from ScrapeSession
 	static getFoundJiraIssues() {
 		return JSON.parse(localStorage.getItem(StorageKeys.JIRAISSUES) || "[]");
@@ -215,19 +226,8 @@ class GtnMonkeyDataStorage {
 	}
 
 	//used from ScrapeSession
-	static storeFilterName(filterName) {
-		window.localStorage.setItem(StorageKeys.JIRA_FILTER_NAME, filterName)	
-	}
-
-	//used from ScrapeSession
 	static getFilterName() {
 		return window.localStorage.getItem(StorageKeys.JIRA_FILTER_NAME)	
-	}
-
-	//used from ScrapeSession
-	static storeOriginPage(originPage) {
-		window.localStorage.setItem(StorageKeys.ORIGIN_PAGE, originPage)
-		printLog("Stored originPage: " + originPage)
 	}
 
 	//used from ScrapeSession
