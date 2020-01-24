@@ -3,7 +3,7 @@ console.log("Loaded gtn-monkey.js")
 import {printLog, printError} from './logging.mjs';
 import {showResultsButtonSelector, attrDisabled} from './common-constants.mjs';
 import {JiraUrlUtils, JiraIssueParser, JiraConstants} from './jira.mjs';
-import {ScrapeSession, ScrapeProgress} from './scrape-session.mjs';
+import {ScrapeSession} from './scrape-session.mjs';
 import {Storage, StorageKeys} from './storage.mjs';
 import * as Overlay from './overlay.mjs';
 import {Quanta} from './quanta.mjs';
@@ -34,10 +34,8 @@ function onDocumentReady() {
 	printLog("Executed document.ready() on page: " + window.location.href)
 
 	if (SCRAPE_SESSION.isInProgress()) {
-		var issues = SCRAPE_SESSION.getDataForJiraIssues()
-
 		//double-check URL
-		if (issues && issues.length > 0 && window.location.href === SCRAPE_SESSION.getCurrentPage()) {
+		if (window.location.href === SCRAPE_SESSION.getCurrentPage()) {
 			JiraIssueParser.parseGTNLinksFromPage(navigateToNextPageCallback)
 		} else if (SCRAPE_SESSION.isFinishedProcessing()) {
 			//We got back to the origin page

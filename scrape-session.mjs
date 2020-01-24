@@ -206,12 +206,6 @@ class ScrapeSession {
 		}
 	}
 
-	getDataForJiraIssues() {
-		var issues = this.getFoundJiraIssues()
-		printLog("Retrieved jira issues from storage: " + issues)
-		return issues
-	}
-
 	//TODO these static methods are temporarily added
 	//used from ScrapeSession
 	getFilterName() {
@@ -349,4 +343,4 @@ class Navigation {
 	}
 }
 
-export { ScrapeSession, Navigation, ScrapeProgress };
+export { ScrapeSession, Navigation };

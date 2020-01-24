@@ -1,7 +1,6 @@
 import {printLog, printError} from './logging.mjs';
 import {JiraUrlUtils, JiraIssueParser} from './jira.mjs';
 import {gtnQueryParam} from './common-constants.mjs';
-import {ScrapeProgress} from './scrape-session.mjs';
 
 class StorageKeys {
 	static get SCRAPE_SESSION_OBJ() { return 'gtnmonkey_scrapesession_obj' }
