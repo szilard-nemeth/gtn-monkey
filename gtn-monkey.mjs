@@ -15,6 +15,7 @@ export function findAllLinksFromJiraIssues() {
 	if (JiraUrlUtils.isOriginPage() && !SCRAPE_SESSION.isInProgress() && SCRAPE_SESSION.isFinished()) {
 		printLog("We are on origin page, cleaning up storage...")
 		cleanupStorage()
+		SCRAPE_SESSION = new ScrapeSession()
 	}
 
 	//TODO create new ScrapeSession object here, store it as a var
@@ -36,7 +37,7 @@ function onDocumentReady() {
 		var issues = SCRAPE_SESSION.getDataForJiraIssues()
 
 		//double-check URL
-		if (issues && issues.length > 0 && window.location.href === issues[0]) {
+		if (issues && issues.length > 0 && window.location.href === SCRAPE_SESSION.getCurrentPage()) {
 			JiraIssueParser.parseGTNLinksFromPage(navigateToNextPageCallback)
 		} else if (SCRAPE_SESSION.isFinishedProcessing()) {
 			//We got back to the origin page
@@ -48,7 +49,7 @@ function onDocumentReady() {
 			//showOverlay()
 			checkIfQuantaLinksAreAccessible()
 		} else {
-			console.error("window.location.href != issues[0]. current page: " + window.location.href + " issues[0]: " + issues[0])
+			console.error(`Current URL != Expected URL. Current page: ${window.location.href}, Expected page: ${SCRAPE_SESSION.getCurrentPage()}`)
 		}
 	}
 }

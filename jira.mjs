@@ -28,8 +28,12 @@ class JiraConstants {
 }
 
 class JiraUrlUtils {
-	static getJiraName() {
-		return window.location.href.split("browse/")[1]
+	static getJiraName(fromUrl) {
+		if (fromUrl == null) {
+			return window.location.href.split("browse/")[1]	
+		} else {
+			return fromUrl.split("browse/")[1]	
+		}
 	}
 
 	static isOriginPage() {

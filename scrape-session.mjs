@@ -23,11 +23,19 @@ class ScrapeSession {
 	jiraIssueLinks;
 	jiraData;
 	numberOfIssuesFound;
+	currentPageIdx;
+
+	constructor() {
+		this.progress = new ScrapeProgress()
+		this.jiraData = []
+		this.currentPageIdx = 0
+	}
 
   	static load() {
   		var session = Storage.deserializeObject(StorageKeys.SCRAPE_SESSION_OBJ, ScrapeSession)
   		session.jiraData = this.deserializeJiraData(session.jiraData)
 
+  		//TODO simplify this
   		if (session.progress == null) {
 			var progress = Storage.deserializeObject(StorageKeys.PROGRESS_OBJ, ScrapeProgress)
 			if (session.progress != null) {
@@ -62,6 +70,7 @@ class ScrapeSession {
 	serialize() {
 		//Convert Map before calling Storage method as Maps are not serializable
 		this.jiraData.forEach(jd => jd.links = MapUtils.strMapToObj(jd.links))
+		this.currentPageIdx += 1
 		Storage.serializeObject(StorageKeys.SCRAPE_SESSION_OBJ, this)
 		//TODO seems like a hack: better to make a copy of this and serialize that, and keep scrapesession as it is (https://stackoverflow.com/questions/728360/how-do-i-correctly-clone-a-javascript-object)
 		this.jiraData = ScrapeSession.load().jiraData
@@ -159,22 +168,38 @@ class ScrapeSession {
 		return window.location.href == this.getOriginPage() && this.isInProgress()
 	}
 
+	getNextPage() {
+		return this.getFoundJiraIssues()[this.currentPageIdx]
+	}
+
+	getCurrentPage() {
+		if (this.currentPageIdx == 0) {
+			throw "Should not be called if no page was processed!"
+		}
+		return this.getFoundJiraIssues()[this.currentPageIdx - 1]
+	}
+
+	hasMorePages() {
+		return this.currentPageIdx < this.getFoundJiraIssues().length 
+	}
+
 	gotoNextPageAtStart() {
-		Navigation.navigate(this.getFoundJiraIssues()[0], this)
+		Navigation.navigate(this.getNextPage(), this)
 	}
 
 	gotoNextPageWhileScraping(page) {
 		//TODO no need to re-store data, don't delete source issue links array, just store current index!
-		var issues = this.getFoundJiraIssues()
-		var parsedPage = issues.shift()
+		var jiraIssueLinks = this.getFoundJiraIssues()
+		var nextPage = this.getNextPage()
 		printLog("Parsed GTN links from current page")
 		//store modified jira issues array to Storage so next execution of onDocumentReady() picks up next page
-		this.storeFoundJiraIssues(issues)
+		this.storeFoundJiraIssues(jiraIssueLinks)
 
 		//Navigate to next page
-		if (issues.length > 0) {
-			Navigation.navigate(issues[0], this)
+		if (this.hasMorePages()) {
+			Navigation.navigate(nextPage, this)
 		} else {
+			//Navigate to origin page
 			var originPage = this.getOriginPage()
 			printLog("No more pages to process. Changing location to origin jira URL: " + originPage)
 			Navigation.navigate(originPage, this)
@@ -256,7 +281,7 @@ class ScrapeProgress {
 			progressCounter = parseInt(prevProgress, 10) + 1
 		}
 
-		var jiraIssue = JiraUrlUtils.getJiraName()
+		var jiraIssue = JiraUrlUtils.getJiraName(session.getNextPage())
 		var numberOfFoundIssues = session.getNumberOfFoundJiraIssues()
 		this.state = progressCounter
 		this.progressStr = `${progressCounter} / ${numberOfFoundIssues} (Jira: ${jiraIssue})`
@@ -314,6 +339,10 @@ class Navigation {
 		var origin = session.getOriginPage()
 		if (location !== origin) {
 			session.processNextPage()
+		} else {
+			//Serialize session for the last time when we want to go back to origin page
+			//Normally, processNextPage() invokes serialize
+			session.serialize()
 		}
 		printLog("Changing location to: " + location)
 		window.location.href = location
