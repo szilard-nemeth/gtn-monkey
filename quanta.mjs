@@ -14,6 +14,17 @@ const QUANTA_URL_VPN_CHECK = "https://quanta.infra.cloudera.com"
 export const quantaTestLogParagraphIdPrefix = "quantatestlog"
 export const quantaBundleParagraphIdPrefix = "quantabundle"
 
+export const quantaTestLogsFilename = "QUASAR_TEST_LOGS.zip"
+export const quantaDiagBundleFilename = "QUASAR_DIAG_LOGS.zip"
+export const gtnPlaceholder = "$GTN$"
+
+//URL example: http://cloudera-build-us-west-1.vpc.cloudera.com/s3/quanta/1681945/QUASAR_ZIP_FOLDER/QUASAR_TEST_LOGS.zip
+const quantaTemplate = `http://cloudera-build-us-west-1.vpc.cloudera.com/s3/quanta/${gtnPlaceholder}/QUASAR_ZIP_FOLDER/`
+
+export const testLogsTemplate = quantaTemplate + quantaTestLogsFilename
+export const diagBundleTemplate = quantaTemplate + quantaDiagBundleFilename
+
+
 class Quanta {
 	static checkLinks(allJiraData) {
 		RequestUtils.checkURL(CORS_ANYWHERE_SERVER_URL, () => { //successcallback
@@ -54,9 +65,9 @@ class Quanta {
 		//result: boolean
 		var gtn = this.extractGtnFromURL(url)
 		if (url.indexOf(urlFragmentTestLogs) != -1) {
-			ElementUtils.highlightElements("p", Overlay.quantaTestLogParagraphIdPrefix, gtn, result)	
+			ElementUtils.highlightElements("p", quantaTestLogParagraphIdPrefix, gtn, result)	
 		} else if (url.indexOf(urlFragmentDiagBundle) != -1) {
-			ElementUtils.highlightElements("p", Overlay.quantaBundleParagraphIdPrefix, gtn, result)
+			ElementUtils.highlightElements("p", quantaBundleParagraphIdPrefix, gtn, result)
 		}
 	}
 

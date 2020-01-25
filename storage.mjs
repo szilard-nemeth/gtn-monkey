@@ -1,20 +1,11 @@
 import {printLog, printError} from './logging.mjs';
 import {JiraUrlUtils, JiraIssueParser} from './jira.mjs';
 import {gtnQueryParam} from './common-constants.mjs';
+import * as Quanta from './quanta.mjs';
 
 class StorageKeys {
 	static get SCRAPE_SESSION_OBJ() { return 'gtnmonkey_scrapesession_obj' }
 }
-
-//TODO move Quanta constants to quanta.mjs
-const quantaTestLogsFilename = "QUASAR_TEST_LOGS.zip"
-const quantaDiagBundleFilename = "QUASAR_DIAG_LOGS.zip"
-const gtnPlaceholder = "$GTN$"
-
-//URL example: http://cloudera-build-us-west-1.vpc.cloudera.com/s3/quanta/1681945/QUASAR_ZIP_FOLDER/QUASAR_TEST_LOGS.zip
-const quantaTemplate = `http://cloudera-build-us-west-1.vpc.cloudera.com/s3/quanta/${gtnPlaceholder}/QUASAR_ZIP_FOLDER/`
-const testLogsTemplate = quantaTemplate + quantaTestLogsFilename
-const diagBundleTemplate = quantaTemplate + quantaDiagBundleFilename
 
 
 
@@ -40,14 +31,13 @@ class JiraData {
     	
     	map.set(gtn, { 
     		quantaLink: link,
-    		quantaTestLog: testLogsTemplate.replace(gtnPlaceholder, gtn),
-    		quantaDiagBundle: diagBundleTemplate.replace(gtnPlaceholder, gtn),
-    		quantaTestLogDownloadName: `${this.id}-${gtn}-${quantaTestLogsFilename}`,
-    		quantaDiagBundleDownloadName: `${this.id}-${gtn}-${quantaDiagBundleFilename}`
+    		quantaTestLog: Quanta.testLogsTemplate.replace(Quanta.gtnPlaceholder, gtn),
+    		quantaDiagBundle: Quanta.diagBundleTemplate.replace(Quanta.gtnPlaceholder, gtn),
+    		quantaTestLogDownloadName: `${this.id}-${gtn}-${Quanta.quantaTestLogsFilename}`,
+    		quantaDiagBundleDownloadName: `${this.id}-${gtn}-${Quanta.quantaDiagBundleFilename}`
     	});
     	return map;
 	}.bind(this), new Map());
-	//console.log("LINKZ: ")
   }
 }
 
