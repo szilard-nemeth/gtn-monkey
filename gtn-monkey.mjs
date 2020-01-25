@@ -7,6 +7,7 @@ import {ScrapeSession} from './scrape-session.mjs';
 import {Storage, StorageKeys} from './storage.mjs';
 import * as Overlay from './overlay.mjs';
 import {Quanta} from './quanta.mjs';
+import * as Utils from './utils.mjs';
 
 export var SCRAPE_SESSION;
 
@@ -28,7 +29,7 @@ export function findAllLinksFromJiraIssues() {
 function onDocumentReady() {
 	SCRAPE_SESSION = ScrapeSession.load()
 	showOverlay()
-	bindEventHandlers()
+	Utils.bindEventHandlers()
 	setButtonStates()
 	printLog("Executed document.ready() on page: " + window.location.href)
 
@@ -49,16 +50,6 @@ function onDocumentReady() {
 			console.error(`Current URL != Expected URL. Current page: ${window.location.href}, Expected page: ${SCRAPE_SESSION.getCurrentPage()}`)
 		}
 	}
-}
-
-//TODO move this to utils.mjs
-function bindEventHandlers() {
-	myjQuery(document).keyup(function(e) {
-		//Hide overlay and dialog on pressing ESC
-		if (e.keyCode === 27) {
-			Overlay.closeResults()
-		}
-	});
 }
 
 function setButtonStates() {
@@ -96,11 +87,6 @@ export function storeFoundGTNLinksForJiraIssue(newLinks) {
 	var jiraIssue = JiraUrlUtils.getJiraName()
 	var jiraData = SCRAPE_SESSION.getJiraDataForJiraIssue(jiraIssue)
 	SCRAPE_SESSION.storeFoundGTNLinks(jiraIssue, jiraData, newLinks)
-}
-
-//TODO move this to utils.mjs
-function isFunction(functionToCheck) {
-	return functionToCheck && {}.toString.call(functionToCheck) === '[object Function]';
 }
 
 function addResultsToTable(jiraData) {

@@ -120,4 +120,13 @@ export function copyText(str) {
 	document.body.removeChild(el);
 }
 
+export function bindEventHandlers() {
+	myjQuery(document).keyup(function(e) {
+		//Hide overlay and dialog on pressing ESC
+		if (e.keyCode === 27) {
+			Overlay.closeResults()
+		}
+	});
+}
+
 export {LinkUtils, ElementUtils, RequestUtils}
