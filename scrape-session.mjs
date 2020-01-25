@@ -180,8 +180,6 @@ class ScrapeSession {
 		}
 	}
 
-	//TODO these static methods are temporarily added
-	//used from ScrapeSession
 	getFilterName() {
 		return this.jiraFilter
 	}
