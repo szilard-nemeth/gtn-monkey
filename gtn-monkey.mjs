@@ -52,7 +52,6 @@ function onDocumentReady() {
 }
 
 function setButtonStates() {
-	//TODO this should only depend on if any results are stored in Storage, not ScrapeSession
 	if (SCRAPE_SESSION.isFinished()) {
 		enableButton(showResultsButtonSelector, true)
 	} else {

@@ -90,8 +90,6 @@ class Quanta {
 	    	}
 	  	}).catch(function (error) {
 	    	printError('Request failed', error);
-	    	//TODO
-	    	// errorCallback(response.url, response.status)
 	    	printError("Error while calling validateQuantaURL!, error: " + error)
 	    	if (errorCallback != undefined) {
 	    		errorCallback(error)	
