@@ -83,6 +83,7 @@ export function storeFoundGTNLinksForJiraIssue(newLinks) {
 	var jiraIssue = JiraUrlUtils.getJiraName()
 	var jiraData = SCRAPE_SESSION.getJiraDataForJiraIssue(jiraIssue)
 	var jiraTitle = JiraIssueParser.parseTitle()
+	//TODO shouldn't pass whole JiraData object back to scrapesession: ScrapeSession should maintain a Map of jira_id, JiraData object
 	SCRAPE_SESSION.storeFoundGTNLinks(jiraIssue, jiraData, jiraTitle, newLinks)
 }
 

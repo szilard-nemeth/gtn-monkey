@@ -64,13 +64,13 @@ class ScrapeSession {
 			return false
 		}
 		printLog("Stored originPage: " + this.originPage)
+		printLog("Found jira issues on origin page: " + this.jiraIssueLinks.toString())
 		return true
 	}
 
 	storeFoundJiraIssues() {
 		this.jiraIssueLinks = JiraIssueParser.parseJiraIssues()
-		this.numberOfIssuesFound = jiraIssueLinks.length
-		printLog("Found jira issues on origin (filter) page: " + jiraIssueLinks.toString())
+		this.numberOfIssuesFound = this.jiraIssueLinks.length
 	}
 
 	storeFoundGTNLinks(jiraIssue, jiraData, jiraTitle, newLinks) {
@@ -85,6 +85,7 @@ class ScrapeSession {
 		var data = new JiraData(jiraIssue, jiraTitle, linksArray)
 		printLog("Storing modified JiraData: " + JSON.stringify(data))
 
+		//TODO no need to store JiraData again
 		//update JiraData array and store it
 		var allJiraData = this.jiraData
 		var foundJiraData = this.getJiraData(allJiraData, jiraIssue, false)
