@@ -17,6 +17,8 @@ function objToStrMap(obj) {
 	} else {
 		return new Map()
 	}
+  // jiraData.links = new Map(Object.entries(jiraData.links));
+  //jiraData.links = JSON.parse(JSON.stringify(jiraData.links)).reduce((m, [key, val]) => m.set(key, val) , new Map());
   // return new Map(Object.entries(obj));
   //Alternatively:
   // let strMap = new Map();

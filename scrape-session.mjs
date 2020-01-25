@@ -47,9 +47,7 @@ class ScrapeSession {
 		return jiraDataObjs.map(jiraData => {
 			jiraData = Object.assign(new JiraData(null, null, []), jiraData)
 			if (!(jiraData.links instanceof Map)) {
-				// jiraData.links = new Map(Object.entries(jiraData.links));
 				jiraData.links = MapUtils.objToStrMap(jiraData.links)
-				//jiraData.links = JSON.parse(JSON.stringify(jiraData.links)).reduce((m, [key, val]) => m.set(key, val) , new Map());
 			}
 			printLog("Deserialized JiraData: " + JSON.stringify(jiraData))
 			return jiraData
