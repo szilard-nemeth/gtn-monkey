@@ -21,20 +21,10 @@ class ScrapeSession {
 	}
 
   	static load() {
+  		printLog("Loading ScrapeSession data from storage...")
   		var session = Storage.deserializeObject(StorageKeys.SCRAPE_SESSION_OBJ, ScrapeSession)
   		session.jiraData = this.deserializeJiraData(session.jiraData)
-
-  		//TODO simplify this
-  		if (session.progress == null) {
-			var progress = Storage.deserializeObject(StorageKeys.PROGRESS_OBJ, ScrapeProgress)
-			if (session.progress != null) {
-				session.progress = progress
-			} else {
-				session.progress = new ScrapeProgress()	
-			}
-  		} else {
-  			session.progress = Object.assign(new ScrapeProgress(), session.progress)
-  		}
+		session.progress = Object.assign(new ScrapeProgress(), session.progress)
   		return session
   	}
 
