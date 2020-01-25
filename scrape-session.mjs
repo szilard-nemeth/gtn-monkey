@@ -67,21 +67,10 @@ class ScrapeSession {
 		return true
 	}
 
-	storeFoundJiraIssues(jiraIssues) {
-		var issueLinks
-
-		//initial run
-		if (jiraIssues === undefined) {
-			issueLinks = JiraIssueParser.parseJiraIssues()
-			printLog("Found jira issues on origin (filter) page: " + issueLinks.toString())
-
-			//Only store number of jira issues if this is the initial run
-			this.numberOfIssuesFound = issueLinks.length
-		} else {
-			printLog("Storing jira issues: " + jiraIssues.toString())
-			issueLinks = jiraIssues
-		}
-		this.jiraIssueLinks = issueLinks
+	storeFoundJiraIssues() {
+		this.jiraIssueLinks = JiraIssueParser.parseJiraIssues()
+		this.numberOfIssuesFound = jiraIssueLinks.length
+		printLog("Found jira issues on origin (filter) page: " + jiraIssueLinks.toString())
 	}
 
 	storeFoundGTNLinks(jiraIssue, jiraData, jiraTitle, newLinks) {
