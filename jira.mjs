@@ -50,7 +50,6 @@ class JiraUrlUtils {
 }
 
 class JiraIssueParser {
-	//TODO storeFoundGTNLinksForJiraIssue can be a callback
 	static parseGTNLinksFromPage(callback) {
 		printLog("Parsing GTN links from current page")
 		//Click on show more comments button

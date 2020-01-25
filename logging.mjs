@@ -10,7 +10,6 @@ export function printError(message, args) {
 	consoleMessage("error", message, args)
 }
 
-//TODO decouple 
 function consoleMessage(type, message, args) {
 	var logPrefix = `GTN monkey (PAGE: ${getPage()}, PROGRESS: ${getProgress()}) `
 
