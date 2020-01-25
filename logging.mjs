@@ -35,7 +35,7 @@ function getPage() {
 	if (JiraUrlUtils.isOriginPage()) {
 		return "ORIGIN: " + JiraUrlUtils.extractJiraPageName()
 	} else {
-		return getJiraName()
+		return JiraUrlUtils.getJiraName()
 	}
 }
 
@@ -44,9 +44,4 @@ function getProgress() {
 		return "unknown"
 	}
 	return GtnMonkey.SCRAPE_SESSION.getOverallProgress()
-}
-
-//TODO duplicated
-function getJiraName() {
-	return window.location.href.split("browse/")[1]
 }
