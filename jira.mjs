@@ -2,6 +2,7 @@ import {printLog, printError} from './logging.mjs';
 import {LinkUtils, ElementUtils} from './utils.mjs';
 import {gtnQueryParam} from './common-constants.mjs';
 import {storeFoundGTNLinksForJiraIssue} from './gtn-monkey.mjs'
+import * as Quanta from './quanta.mjs';
 
 //Jira-related / Jira-defined stuff: buttons, dialogs, elements
 const JIRA_SERVER_URL = "https://jira.cloudera.com"
@@ -64,7 +65,7 @@ class JiraIssueParser {
 		printLog("Comments loaded");
 		var allLinks = []
 		myjQuery(commentSelector).each(function() {
-			var links = LinkUtils.findLinksInHtml(myjQuery(this).html(), gtnQueryParam)
+			var links = LinkUtils.findLinksInHtml(myjQuery(this).html(), Quanta.gtnQueryParam)
 
 			if (links == null) {
 				storeFoundGTNLinksForJiraIssue([])
@@ -84,7 +85,7 @@ class JiraIssueParser {
 
 	static parseAndSaveLinksFromDescription() {
 		var description = myjQuery(descriptionSelector).html()
-		var links = LinkUtils.findLinksInHtml(description, gtnQueryParam)
+		var links = LinkUtils.findLinksInHtml(description, Quanta.gtnQueryParam)
 		if (links != null) {
 			storeFoundGTNLinksForJiraIssue(links)
 		} else {

@@ -1,6 +1,5 @@
 import {printLog, printError} from './logging.mjs';
 import {JiraUrlUtils, JiraIssueParser} from './jira.mjs';
-import {gtnQueryParam} from './common-constants.mjs';
 import * as Quanta from './quanta.mjs';
 
 class StorageKeys {
@@ -20,7 +19,7 @@ class JiraData {
 
     //TODO do this conversion earlier?
     this.links = links.reduce(function(map, link) {
-		var gtn = link.split(gtnQueryParam)[1]
+		var gtn = link.split(Quanta.gtnQueryParam)[1]
 
 		//If we have anything after GTN number, drop it
 		gtn = gtn.match(/^\d+/gi)

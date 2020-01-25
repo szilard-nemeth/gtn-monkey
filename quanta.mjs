@@ -24,6 +24,8 @@ const quantaTemplate = `http://cloudera-build-us-west-1.vpc.cloudera.com/s3/quan
 export const testLogsTemplate = quantaTemplate + quantaTestLogsFilename
 export const diagBundleTemplate = quantaTemplate + quantaDiagBundleFilename
 
+export const gtnQueryParam = "gtn="
+
 
 class Quanta {
 	static checkLinks(allJiraData) {
