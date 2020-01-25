@@ -5,7 +5,7 @@ export const PROGRESS_FINISHED = "Finished"
 export const PROGRESS_STARTED = "Started"
 
 class ScrapeProgress {
-	//Can be STARTED, FINISHED or a number (e.g. 2) indicating number of processed items
+	//State: Can be STARTED, FINISHED or a number (e.g. 2) indicating number of processed items
 	state = null;
 	progressStr = "";
 	finishedTime = null;
@@ -15,6 +15,7 @@ class ScrapeProgress {
 		this.state = PROGRESS_STARTED
 	}
 
+	//TODO don't pass session, just relevant fields of it
 	storeProgress(session) {
 		var prevProgress = this.state
 

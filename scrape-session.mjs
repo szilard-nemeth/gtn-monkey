@@ -3,6 +3,7 @@ import {ScrapeProgress} from './scrape-progress.mjs';
 import {JiraUrlUtils} from './jira.mjs';
 import {printLog, printError} from './logging.mjs';
 import * as MapUtils from './maputils.mjs';
+import * as Navigation from './navigation.mjs';
 
 //TODO make this an object and only store state through instance of this class
 //TODO remove all references to myjQuery
@@ -245,19 +246,4 @@ class ScrapeSession {
 
 }
 
-class Navigation {
-	static navigate(location, session) {
-		var origin = session.getOriginPage()
-		if (location !== origin) {
-			session.processNextPage()
-		} else {
-			//Serialize session for the last time when we want to go back to origin page
-			//Normally, processNextPage() invokes serialize
-			session.serialize()
-		}
-		printLog("Changing location to: " + location)
-		window.location.href = location
-	}
-}
-
-export { ScrapeSession, Navigation };
+export { ScrapeSession };
