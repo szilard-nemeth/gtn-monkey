@@ -18,7 +18,6 @@ export function findAllLinksFromJiraIssues() {
 		SCRAPE_SESSION = new ScrapeSession()
 	}
 
-	//TODO create new ScrapeSession object here, store it as a var
 	var jiraFilterName = myjQuery(JiraConstants.JIRA_FILTER_NAME_SELECTOR).text()
 	var foundIssues = SCRAPE_SESSION.start(jiraFilterName)
 	if (foundIssues) {
@@ -111,19 +110,6 @@ function addResultsToTable(jiraData) {
 export function checkIfQuantaLinksAreAccessible() {
 	var allJiraData = SCRAPE_SESSION.getAllJiraData()
 	Quanta.checkLinks(allJiraData)
-}
-
-//TODO move this to utils.mjs
-function copyText(str) {
-	const el = document.createElement('textarea');
-	el.value = str;
-	el.setAttribute('readonly', '');
-	el.style.position = 'absolute';
-	el.style.left = '-9999px';
-	document.body.appendChild(el);
-	el.select();
-	document.execCommand('copy');
-	document.body.removeChild(el);
 }
 
 function showOverlay() {

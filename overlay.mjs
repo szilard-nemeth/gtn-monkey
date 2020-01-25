@@ -1,5 +1,7 @@
 import {showResultsButtonSelector, attrDisabled} from './common-constants.mjs';
 import {printLog, printError} from './logging.mjs';
+import * as Utils from './utils.mjs';
+
 
 //TODO Remove these as dependencies later: Results should come from GTN-monkey.mjs
 import {ScrapeSession} from './scrape-session.mjs';
@@ -17,6 +19,8 @@ const pageTitle = "GTN MONKEY"
 //elements of result table
 export const quantaTestLogParagraphIdPrefix = "quantatestlog"
 export const quantaBundleParagraphIdPrefix = "quantabundle"
+
+window.copyText = Utils.copyText
 
 export function renderResults(numberOfFoundIssues, allJiraData) {
 	//TODO Results overlay should not depend on ScrapeSession.
