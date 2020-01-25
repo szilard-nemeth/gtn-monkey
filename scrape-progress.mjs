@@ -39,7 +39,6 @@ class ScrapeProgress {
 
 	stopProgress() {
 		this.state = PROGRESS_FINISHED
-		//TODO add to progressStr: how many items were processed in this session, e.g. (24/24)
 		this.progressStr = PROGRESS_FINISHED
 		this.finishedTime = Date.now()
 		printLog("Stopped progress")

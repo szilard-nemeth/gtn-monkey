@@ -5,9 +5,7 @@ import {printLog, printError} from './logging.mjs';
 import * as MapUtils from './maputils.mjs';
 import * as Navigation from './navigation.mjs';
 
-//TODO make this an object and only store state through instance of this class
 //TODO remove all references to myjQuery
-
 class ScrapeSession {
 	jiraFilter;
 	originPage;
