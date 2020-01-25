@@ -39,7 +39,6 @@ function onDocumentReady() {
 			JiraIssueParser.parseGTNLinksFromPage(navigateToNextPageCallback)
 		} else if (SCRAPE_SESSION.isFinishedProcessing()) {
 			//We got back to the origin page
-			//Let's show final results: showResultsOverlay should be executed as progress is finished
 			SCRAPE_SESSION.stop()
 
 			//TODO
@@ -65,7 +64,6 @@ function enableButton(buttonSelector, enabled) {
 	myjQuery(buttonSelector).attr(attrDisabled, !enabled);
 }
 
-//TODO: move this
 //Exported for place-buttons.mjs
 export function showResultsOverlay() {
 	Overlay.showResults()

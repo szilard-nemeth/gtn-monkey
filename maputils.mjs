@@ -1,4 +1,3 @@
-//TODO move this to separate module
 //https://2ality.com/2015/08/es6-map-json.html
 //https://stackoverflow.com/questions/50153172/how-to-serialize-a-map-in-javascript
 function strMapToObj(strMap) {

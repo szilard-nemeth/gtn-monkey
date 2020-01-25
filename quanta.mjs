@@ -10,6 +10,10 @@ const urlFragmentTestLogs = "TEST_LOGS"
 const urlFragmentDiagBundle = "DIAG_LOGS"
 const QUANTA_URL_VPN_CHECK = "https://quanta.infra.cloudera.com"
 
+//elements of result table
+export const quantaTestLogParagraphIdPrefix = "quantatestlog"
+export const quantaBundleParagraphIdPrefix = "quantabundle"
+
 class Quanta {
 	static checkLinks(allJiraData) {
 		RequestUtils.checkURL(CORS_ANYWHERE_SERVER_URL, () => { //successcallback

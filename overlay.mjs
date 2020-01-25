@@ -1,6 +1,7 @@
 import {showResultsButtonSelector, attrDisabled} from './common-constants.mjs';
 import {printLog, printError} from './logging.mjs';
 import * as Utils from './utils.mjs';
+import {quantaTestLogParagraphIdPrefix, quantaBundleParagraphIdPrefix} from './quanta.mjs'
 
 
 //TODO Remove these as dependencies later: Results should come from GTN-monkey.mjs
@@ -15,10 +16,6 @@ const gtnMonkeyResultsTableBody = "gtnmonkey-results-tbody"
 const gtnMonkeyResultsIssueRow = "issuerow"
 const rowNumberClass = "rownumber"
 const pageTitle = "GTN MONKEY"
-
-//elements of result table
-export const quantaTestLogParagraphIdPrefix = "quantatestlog"
-export const quantaBundleParagraphIdPrefix = "quantabundle"
 
 window.copyText = Utils.copyText
 

@@ -18,8 +18,6 @@ const JIRA_FILTERPAGE_URL_FRAGMENT = "issues/?filter="
 //<span class="show-more-comments" data-collapsed-count="18">Loading...</span>
 const showMoreCommentsButton = "show-more-comments"
 const collapsedCommentsButton = "collapsed-comments"
-
-//TODO Move these to JiraConstants
 const descriptionSelector = '#descriptionmodule p'
 const commentSelector = '.twixi-wrap > .action-body'
 
