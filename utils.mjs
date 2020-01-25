@@ -69,11 +69,10 @@ class ElementUtils {
 
 	static highlightElements(elementType, type, gtn, available) {
 		var color = available ? colorLightGreen : colorGrey
-		this.filterJqueryElements(elementType, `${type}-.*-${gtn}`).css("background-color", color);
+		this._filterJqueryElements(elementType, `${type}-.*-${gtn}`).css("background-color", color);
 	}
 
-	//TODO this should be private
-	static filterJqueryElements(elementType, regexStr) {
+	static _filterJqueryElements(elementType, regexStr) {
 		return $(elementType).filter(function() {
 	   		return this.id.match(new RegExp(regexStr));
 	  	})
