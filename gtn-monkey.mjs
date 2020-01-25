@@ -99,7 +99,8 @@ export function checkIfQuantaLinksAreAccessible() {
 function showOverlay() {
 	var numberOfFoundIssues = SCRAPE_SESSION.getNumberOfFoundJiraIssues()
 	var allJiraData = SCRAPE_SESSION.getAllJiraData()
-	Overlay.renderResults(numberOfFoundIssues, allJiraData)
+	var progress = SCRAPE_SESSION.getOverallProgress()
+	Overlay.renderResults(numberOfFoundIssues, allJiraData, progress, checkIfQuantaLinksAreAccessible)
 	if (SCRAPE_SESSION.isInProgress() || SCRAPE_SESSION.isFinishedRecently()) {
 		Overlay.showResults()
 	}

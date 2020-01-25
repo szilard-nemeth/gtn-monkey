@@ -3,12 +3,6 @@ import {printLog, printError} from './logging.mjs';
 import * as Utils from './utils.mjs';
 import {quantaTestLogParagraphIdPrefix, quantaBundleParagraphIdPrefix} from './quanta.mjs'
 
-
-//TODO Remove these as dependencies later: Results should come from GTN-monkey.mjs
-import {ScrapeSession} from './scrape-session.mjs';
-import * as GtnMonkey from './gtn-monkey.mjs';
-//End of TODO
-
 const overlayClass = "aui-blanket"
 const clearResultsButtonSelector = "#gtnm-clear-results"
 const gtnMonkeyDialogId = "gtnmonkey-dialog"
@@ -19,15 +13,9 @@ const pageTitle = "GTN MONKEY"
 
 window.copyText = Utils.copyText
 
-export function renderResults(numberOfFoundIssues, allJiraData) {
-	//TODO Results overlay should not depend on ScrapeSession.
-	//If we have anything in storage, should show the results overlay
-	
+export function renderResults(numberOfFoundIssues, allJiraData, progress, quantaLinkCheckerCallback) {
 	var overlayDiv = myjQuery(`<div class="${overlayClass}" tabindex="0" aria-hidden="false"></div>`)
-	overlayDiv.appendTo(myjQuery('body'))
-
-	var progress = GtnMonkey.SCRAPE_SESSION.getOverallProgress()
-	
+	overlayDiv.appendTo(myjQuery('body'))	
 
 	var validateQuantaLinksButtonId = "validate-quanta-links"
 	var closeOverlayButtonId = "close-overlay-button"
@@ -59,7 +47,7 @@ export function renderResults(numberOfFoundIssues, allJiraData) {
 	var dialog = myjQuery(markup)
 	dialog.appendTo(myjQuery('body'))
 
-	document.querySelector('#' + validateQuantaLinksButtonId).addEventListener('click', GtnMonkey.checkIfQuantaLinksAreAccessible)
+	document.querySelector('#' + validateQuantaLinksButtonId).addEventListener('click', quantaLinkCheckerCallback)
 	document.querySelector('#' + closeOverlayButtonId).addEventListener('click', closeResults)
 
 	showTable(numberOfFoundIssues, allJiraData)
