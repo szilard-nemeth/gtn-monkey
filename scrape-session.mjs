@@ -1,16 +1,12 @@
 import {Storage, StorageKeys, JiraData} from './storage.mjs';
 import {ScrapeProgress} from './scrape-progress.mjs';
-import {JiraUrlUtils} from './jira.mjs';
+import {JiraUrlUtils, jiraSummarySelector, jiraIssuesOnFilterPageSelector} from './jira.mjs';
 import {printLog, printError} from './logging.mjs';
 import * as MapUtils from './maputils.mjs';
 import * as Navigation from './navigation.mjs';
 
 //TODO make this an object and only store state through instance of this class
 //TODO remove all references to myjQuery
-
-//TODO move these to somewhere else? Feels like these belong to jira.mjs?
-const jiraSummarySelector = '#summary-val'
-const jiraIssuesOnFilterPageSelector = '.results-panel .issuekey a'
 
 class ScrapeSession {
 	jiraFilter;
@@ -91,6 +87,7 @@ class ScrapeSession {
 
 		//initial run
 		if (jiraIssues === undefined) {
+			//TODO make this transformation somewhere else
 			issueLinks = myjQuery(jiraIssuesOnFilterPageSelector).map(function() {
 				return JiraUrlUtils.getServerPrefixedUrl(myjQuery(this).attr('href'))
 			}).toArray();
@@ -113,6 +110,7 @@ class ScrapeSession {
 		var linksArray = Array.from(jiraData.links.values()).map(val => val.quantaLink).concat(newLinks)
 		printLog("Updated links: " + JSON.stringify(linksArray))
 
+		//TODO query this before and pass it as param
 		var jiraTitle = myjQuery(jiraSummarySelector).text()
 		
 		//create JiraData

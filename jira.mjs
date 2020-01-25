@@ -20,6 +20,8 @@ const showMoreCommentsButton = "show-more-comments"
 const collapsedCommentsButton = "collapsed-comments"
 const descriptionSelector = '#descriptionmodule p'
 const commentSelector = '.twixi-wrap > .action-body'
+export const jiraSummarySelector = '#summary-val'
+export const jiraIssuesOnFilterPageSelector = '.results-panel .issuekey a'
 
 class JiraConstants {
 	static get JIRA_FILTER_NAME_SELECTOR() { return '.search-title' }
