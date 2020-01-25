@@ -22,7 +22,7 @@ export function findAllLinksFromJiraIssues() {
 	var jiraFilterName = myjQuery(JiraConstants.JIRA_FILTER_NAME_SELECTOR).text()
 	var foundIssues = SCRAPE_SESSION.start(jiraFilterName)
 	if (foundIssues) {
-		SCRAPE_SESSION.gotoNextPageAtStart()	
+		SCRAPE_SESSION.gotoNextPage()	
 	}
 }
 
@@ -71,7 +71,7 @@ function navigateToNextPageCallback() {
 	var jiraIssue = JiraUrlUtils.getJiraName()
 	var jiraData = SCRAPE_SESSION.getJiraDataForJiraIssue(jiraIssue)
 	addResultsToTable(jiraData)
-	SCRAPE_SESSION.gotoNextPageWhileScraping()
+	SCRAPE_SESSION.gotoNextPage()
 }
 
 export function cleanupStorage() {

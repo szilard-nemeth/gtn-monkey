@@ -1,5 +1,6 @@
 import {printLog, printError} from './logging.mjs';
 
+//TODO how to avoid passing session object to navigate?
 export function navigate(location, session) {
 	var origin = session.getOriginPage()
 	if (location !== origin) {
@@ -9,6 +10,6 @@ export function navigate(location, session) {
 		//Normally, processNextPage() invokes serialize
 		session.serialize()
 	}
-	printLog("Changing location to: " + location)
+	printLog("Navigating to: " + location)
 	window.location.href = location
 }

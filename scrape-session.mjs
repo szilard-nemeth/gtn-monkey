@@ -170,25 +170,12 @@ class ScrapeSession {
 		return this.currentPageIdx < this.getFoundJiraIssues().length 
 	}
 
-	gotoNextPageAtStart() {
-		Navigation.navigate(this.getNextPage(), this)
-	}
-
-	gotoNextPageWhileScraping(page) {
-		//TODO no need to re-store data, don't delete source issue links array, just store current index!
-		var jiraIssueLinks = this.getFoundJiraIssues()
-		var nextPage = this.getNextPage()
-		printLog("Parsed GTN links from current page")
-		//store modified jira issues array to Storage so next execution of onDocumentReady() picks up next page
-		this.storeFoundJiraIssues(jiraIssueLinks)
-
-		//Navigate to next page
+	gotoNextPage(page) {
 		if (this.hasMorePages()) {
-			Navigation.navigate(nextPage, this)
+			Navigation.navigate(this.getNextPage(), this)
 		} else {
-			//Navigate to origin page
 			var originPage = this.getOriginPage()
-			printLog("No more pages to process. Changing location to origin jira URL: " + originPage)
+			printLog("No more pages to process. Navigating to origin page: " + originPage)
 			Navigation.navigate(originPage, this)
 		}
 	}
