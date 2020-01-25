@@ -1,10 +1,6 @@
 import {RequestUtils, ElementUtils} from './utils.mjs';
 import {printLog, printError} from './logging.mjs';
 
-//TODO can be removed later
-import * as Overlay from './overlay.mjs';
-
-
 const quantaUrlSplitAlong = "/s3/quanta/"
 const urlFragmentTestLogs = "TEST_LOGS"
 const urlFragmentDiagBundle = "DIAG_LOGS"

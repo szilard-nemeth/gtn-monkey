@@ -41,8 +41,7 @@ function onDocumentReady() {
 			//We got back to the origin page
 			SCRAPE_SESSION.stop()
 
-			//TODO
-			//Need to call showOverlay to show latest status
+			//TODO Need to call showOverlay to show latest status
 			//showOverlay()
 			checkIfQuantaLinksAreAccessible()
 		} else {

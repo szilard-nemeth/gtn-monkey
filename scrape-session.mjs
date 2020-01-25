@@ -133,7 +133,9 @@ class ScrapeSession {
 	}
 
 	processNextPage() {
-		this.progress.storeProgress(this)
+		var jiraIssue = JiraUrlUtils.getJiraName(this.getNextPage())
+		var numberOfFoundIssues = this.getNumberOfFoundJiraIssues()
+		this.progress.storeProgress(jiraIssue, numberOfFoundIssues)
 		this.serialize()
 	}
 	

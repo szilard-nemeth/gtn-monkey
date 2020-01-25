@@ -15,8 +15,7 @@ class ScrapeProgress {
 		this.state = PROGRESS_STARTED
 	}
 
-	//TODO don't pass session, just relevant fields of it
-	storeProgress(session) {
+	storeProgress(jiraIssue, numberOfFoundIssues) {
 		var prevProgress = this.state
 
 		var progressCounter
@@ -26,8 +25,6 @@ class ScrapeProgress {
 			progressCounter = parseInt(prevProgress, 10) + 1
 		}
 
-		var jiraIssue = JiraUrlUtils.getJiraName(session.getNextPage())
-		var numberOfFoundIssues = session.getNumberOfFoundJiraIssues()
 		this.state = progressCounter
 		this.progressStr = `${progressCounter} / ${numberOfFoundIssues} (Jira: ${jiraIssue})`
 		printLog("Saved progress: " + progressCounter)
