@@ -1,6 +1,5 @@
 import {printLog, printError} from './logging.mjs';
 import {LinkUtils, ElementUtils} from './utils.mjs';
-import {gtnQueryParam} from './common-constants.mjs';
 import {storeFoundGTNLinksForJiraIssue} from './gtn-monkey.mjs'
 import * as Quanta from './quanta.mjs';
 
