@@ -82,7 +82,8 @@ export function cleanupStorage() {
 export function storeFoundGTNLinksForJiraIssue(newLinks) {
 	var jiraIssue = JiraUrlUtils.getJiraName()
 	var jiraData = SCRAPE_SESSION.getJiraDataForJiraIssue(jiraIssue)
-	SCRAPE_SESSION.storeFoundGTNLinks(jiraIssue, jiraData, newLinks)
+	var jiraTitle = JiraIssueParser.parseTitle()
+	SCRAPE_SESSION.storeFoundGTNLinks(jiraIssue, jiraData, jiraTitle, newLinks)
 }
 
 function addResultsToTable(jiraData) {

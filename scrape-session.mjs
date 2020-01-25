@@ -1,11 +1,10 @@
 import {Storage, StorageKeys, JiraData} from './storage.mjs';
 import {ScrapeProgress} from './scrape-progress.mjs';
-import {JiraUrlUtils, jiraSummarySelector, jiraIssuesOnFilterPageSelector} from './jira.mjs';
 import {printLog, printError} from './logging.mjs';
 import * as MapUtils from './maputils.mjs';
 import * as Navigation from './navigation.mjs';
+import {JiraIssueParser, JiraUrlUtils} from './jira.mjs';
 
-//TODO remove all references to myjQuery
 class ScrapeSession {
 	jiraFilter;
 	originPage;
@@ -85,10 +84,7 @@ class ScrapeSession {
 
 		//initial run
 		if (jiraIssues === undefined) {
-			//TODO make this transformation somewhere else
-			issueLinks = myjQuery(jiraIssuesOnFilterPageSelector).map(function() {
-				return JiraUrlUtils.getServerPrefixedUrl(myjQuery(this).attr('href'))
-			}).toArray();
+			issueLinks = JiraIssueParser.parseJiraIssues()
 			printLog("Found jira issues on origin (filter) page: " + issueLinks.toString())
 
 			//Only store number of jira issues if this is the initial run
@@ -100,16 +96,13 @@ class ScrapeSession {
 		this.jiraIssueLinks = issueLinks
 	}
 
-	storeFoundGTNLinks(jiraIssue, jiraData, newLinks) {
+	storeFoundGTNLinks(jiraIssue, jiraData, jiraTitle, newLinks) {
 		if (jiraData.links.size > 0) {
 			printLog("Found data for '" + jiraIssue + "', appending data to it")
 		}
 		printLog("Found new GTN links: " + JSON.stringify(newLinks))
 		var linksArray = Array.from(jiraData.links.values()).map(val => val.quantaLink).concat(newLinks)
 		printLog("Updated links: " + JSON.stringify(linksArray))
-
-		//TODO query this before and pass it as param
-		var jiraTitle = myjQuery(jiraSummarySelector).text()
 		
 		//create JiraData
 		var data = new JiraData(jiraIssue, jiraTitle, linksArray)

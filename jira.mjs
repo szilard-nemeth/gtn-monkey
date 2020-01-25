@@ -91,6 +91,17 @@ class JiraIssueParser {
 			storeFoundGTNLinksForJiraIssue([])
 		}
 	}
+
+	static parseTitle() {
+		return myjQuery(jiraSummarySelector).text()	
+	}
+
+	static parseJiraIssues() {
+		return myjQuery(jiraIssuesOnFilterPageSelector).map(function() {
+				return JiraUrlUtils.getServerPrefixedUrl(myjQuery(this).attr('href'))
+			}).toArray();
+	}
+	
 }
 
 export {JiraUrlUtils, JiraConstants, JiraIssueParser}
